@@ -17,6 +17,8 @@ char *shouts[5] = {"Ham Sandwich", "Turkey Sandwich", "Tuna Sandwich",
 					"Chicken Sandwich", "Roast Beef Sandwich"};
 int numShouts;
 int numPhils;
+int numPhilsEntered = 0;
+int numPhilsSat = 0;
 int numMeals;
 bool *chopsticks;
 
@@ -433,14 +435,23 @@ void Task3() {
 //-------------------------------------------------------------
 void Dine(int which)
 {
+
+	int waitUntil;
+	int waitCounter;
+	
 	//Current Philosopher enters the room
+	numPhilsEntered++;
 	printf("***Philosopher %i has entered the room. \n", which);
-	currentThread->Yield();
+	while(numPhilsEntered < numPhils)
+		currentThread->Yield();
 
 	//Current Philosopher sits at the table
+	numPhilsSat++;
 	printf("***Philosopher %i has sat down \n", which);
-	currentThread->Yield();
+	while(numPhilsSat < numPhils)
+		currentThread->Yield();
 	
+	//If available, current Philosopher picks up both chopsticks
 	if(chopsticks[which] == false)
 	{
 		if(chopsticks[(which + 1) % numPhils] == false)
@@ -448,10 +459,50 @@ void Dine(int which)
 			chopsticks[which] = true;
 			chopsticks[(which + 1) % numPhils] = true;
 			
-			printf("***Philosopher %i picks up chopstick[%i].\n", which, chopsticks[which]);
-			printf("***Philosopher %i picks up chopstick[%i].\n", which, chopsticks[(which + 1) % numPhils]);
+			printf("***Philosopher %i picks up chopstick[%i].\n", which, which);
+			printf("***Philosopher %i picks up chopstick[%i].\n", which, (which + 1) % numPhils);
 		}
 	}
-
+	else
+	{
+		while((chopsticks[which] == false) && (chopsticks[(which + 1) % numPhils] == false))
+			currentThread->Yield();
+	}
+	
+	//Eating for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+		
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+	/*
+	//Current Philosopher puts down both chopsticks
+	chopsticks[which] = false;
+	chopsticks[(which + 1) % numPhils] = false;
+			
+	printf("***Philosopher %i puts down chopstick[%i].\n", which, which);
+	printf("***Philosopher %i puts down chopstick[%i].\n", which, (which + 1) % numPhils);
+	
+	//Current Philosopher starts thinking
+	printf("***Philosopher %i has started thinking \n", which);
+	
+	//Eating for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+		
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+	
+	numMeals--;*/
 
 }
