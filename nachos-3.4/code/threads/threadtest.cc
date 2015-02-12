@@ -16,6 +16,9 @@
 char *shouts[5] = {"Ham Sandwich", "Turkey Sandwich", "Tuna Sandwich", 
 					"Chicken Sandwich", "Roast Beef Sandwich"};
 int numShouts;
+int numPhils;
+int numMeals;
+bool *chopsticks;
 
 //----------------------------------------------------------------------
 // InputType
@@ -97,6 +100,20 @@ void Shout(int threadNum);
 //		purposes.
 //----------------------------------------------------------------------
 
+//----------------------------------------------------------------------
+// Task3
+//		Implementation of Task 3 problem.
+//		Prompts the user for a number of philosophers and a number of meals.
+//		Creates an array of chopsticks to use; one per philosopher
+
+//		Creates a thread for each philosopher and forks them to the Dine function.
+//		
+//----------------------------------------------------------------------
+void Task3();
+
+void Dine(int threadNum);
+
+
 void
 SimpleThread(int which)
 {
@@ -124,6 +141,8 @@ ThreadTest()
 		Task1();
 	else if (taskToDo == 2)
     	Task2();
+	else if (taskToDo == 3)
+	Task3();
     else {
     	printf("***Error, improper input or no -A command found\n");
     	currentThread->Finish();
@@ -358,4 +377,81 @@ void Shout(int threadNum) {
 	}
 	
 	currentThread->Finish();
+}
+
+//-------------------------------------------------------------
+//--------------------TASK 3-----------------------------------
+//-------------------------------------------------------------
+void Task3() {
+	char * buffer = new char[256];
+	
+	//Collect Input
+	printf("***Enter desired number of philosophers: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	
+	
+	//Convert Number of Philosophers
+	numPhils = atoi(buffer);
+
+	//Create an array of chopsticks with one per philosopher
+	chopsticks = new bool[numPhils];
+	
+	//Collect Input
+	printf("***Enter desired number of meals to eat: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	} 
+	
+	
+	//Convert Number of Meals
+	numMeals = atoi(buffer);
+
+	printf("\n\n");
+	
+	//Set up our loop to fork numPhils
+	Thread * t;
+	for (int i = 0; i < numPhils; i++) {
+		t = new Thread("Task 3 Thread");
+		t->Fork(Dine, i);
+	}
+	
+	
+	currentThread->Finish();
+}
+
+
+//-------------------------------------------------------------
+//--------------------DINE-------------------------------------
+//-------------------------------------------------------------
+void Dine(int which)
+{
+	//Current Philosopher enters the room
+	printf("***Philosopher %i has entered the room. \n", which);
+	currentThread->Yield();
+
+	//Current Philosopher sits at the table
+	printf("***Philosopher %i has sat down \n", which);
+	currentThread->Yield();
+	
+	if(chopsticks[which] == false)
+	{
+		if(chopsticks[(which + 1) % numPhils] == false)
+		{
+			chopsticks[which] = true;
+			chopsticks[(which + 1) % numPhils] = true;
+			
+			printf("***Philosopher %i picks up chopstick[%i].\n", which, chopsticks[which]);
+			printf("***Philosopher %i picks up chopstick[%i].\n", which, chopsticks[(which + 1) % numPhils]);
+		}
+	}
+
+
 }
