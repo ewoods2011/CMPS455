@@ -472,6 +472,7 @@ void Dine(int which)
 	//Current Philosopher starts eating
 	printf("***Philosopher %i has started eating \n", which);
 	
+	/*
 	//Eating for 2-5 cycles
 	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
 	waitCounter = 0;
@@ -483,7 +484,7 @@ void Dine(int which)
 		currentThread->Yield();
 		waitCounter++;
 	}
-	/*
+	
 	//Current Philosopher puts down both chopsticks
 	chopsticks[which] = false;
 	chopsticks[(which + 1) % numPhils] = false;
