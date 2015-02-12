@@ -457,6 +457,10 @@ void Dine(int which)
 		if(chopsticks[(which + 1) % numPhils] == false)
 		{
 			chopsticks[which] = true;
+			
+			if(chopsticks[(which + 1) % numPhils] == true)
+				chopsticks[which] = false;
+			else		
 			chopsticks[(which + 1) % numPhils] = true;
 			
 			printf("***Philosopher %i picks up chopstick[%i].\n", which, which);
@@ -465,7 +469,7 @@ void Dine(int which)
 	}
 	else
 	{
-		while((chopsticks[which] == false) && (chopsticks[(which + 1) % numPhils] == false))
+		while((chopsticks[which] == true) && (chopsticks[(which + 1) % numPhils] == true))
 			currentThread->Yield();
 	}
 	

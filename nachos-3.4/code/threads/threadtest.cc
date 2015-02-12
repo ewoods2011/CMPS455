@@ -457,7 +457,11 @@ void Dine(int which)
 		if(chopsticks[(which + 1) % numPhils] == false)
 		{
 			chopsticks[which] = true;
-			chopsticks[(which + 1) % numPhils] = true;
+			
+			if(chopsticks[(which + 1) % numPhils] == true)
+				chopsticks[which] = false;
+			else		
+				chopsticks[(which + 1) % numPhils] = true;
 			
 			printf("***Philosopher %i picks up chopstick[%i].\n", which, which);
 			printf("***Philosopher %i picks up chopstick[%i].\n", which, (which + 1) % numPhils);
