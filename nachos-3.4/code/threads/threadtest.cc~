@@ -111,10 +111,10 @@ void Shout(int threadNum);
 //		Creates a thread for each philosopher and forks them to the Dine function.
 //		
 //----------------------------------------------------------------------
-void Task3();
+void task34Input(int taskNum);
 
-void Dine(int threadNum);
-
+void Dine1(int threadNum);
+void Dine2(int threadNum);
 
 void
 SimpleThread(int which)
@@ -144,7 +144,9 @@ ThreadTest()
 	else if (taskToDo == 2)
     	Task2();
 	else if (taskToDo == 3)
-	Task3();
+	task34Input(3);
+	else if (taskToDo == 4)
+	task34Input(4);
     else {
     	printf("***Error, improper input or no -A command found\n");
     	currentThread->Finish();
@@ -384,7 +386,7 @@ void Shout(int threadNum) {
 //-------------------------------------------------------------
 //--------------------TASK 3-----------------------------------
 //-------------------------------------------------------------
-void Task3() {
+void task34Input(int taskNum){
 	char * buffer = new char[256];
 	
 	//Collect Input
@@ -419,10 +421,21 @@ void Task3() {
 	printf("\n\n");
 	
 	//Set up our loop to fork numPhils
-	Thread * t;
-	for (int i = 0; i < numPhils; i++) {
-		t = new Thread("Task 3 Thread");
-		t->Fork(Dine, i);
+	if(taskNum == 3){
+		Thread * t;
+		for (int i = 0; i < numPhils; i++) {
+			t = new Thread("Task 3 Thread");
+			t->Fork(Dine1, i);
+		}
+	}
+	else
+	{	
+		Thread * t;
+		for (int i = 0; i < numPhils; i++) {
+			t = new Thread("Task 4 Thread");
+			t->Fork(Dine2, i);
+		}
+	
 	}
 	
 	
@@ -431,9 +444,9 @@ void Task3() {
 
 
 //-------------------------------------------------------------
-//--------------------DINE-------------------------------------
+//--------------------DINE1 for Task3--------------------------
 //-------------------------------------------------------------
-void Dine(int which)
+void Dine1(int which)
 {
 
 	int waitUntil;
@@ -451,6 +464,97 @@ void Dine(int which)
 	while(numPhilsSat < numPhils)
 		currentThread->Yield();
 	
+	while(numMeals > 0){
+	//If available, current Philosopher picks up both chopsticks
+	if(chopsticks[which] == false)
+	{
+		if(chopsticks[(which + 1) % numPhils] == false)
+		{
+			chopsticks[which] = true;
+			
+			if(chopsticks[(which + 1) % numPhils] == true)
+				chopsticks[which] = false;
+			else{	
+				chopsticks[(which + 1) % numPhils] = true;
+			
+				printf("***Philosopher %i picks up chopstick[%i].\n", which, which);
+				printf("***Philosopher %i picks up chopstick[%i].\n", which, (which + 1) % numPhils);
+				printf("***Philosopher %i has started eating \n", which);
+				
+					//Eating for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+		
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+			}
+		}
+	}
+	else
+	{
+		while((chopsticks[which] == true) || (chopsticks[(which + 1) % numPhils] == true))
+			currentThread->Yield();
+	}
+	
+	//Current Philosopher starts eating
+	//printf("***Philosopher %i has started eating \n", which);
+	
+	if((chopsticks[which] == true) || (chopsticks[(which + 1) % numPhils] == true))
+	//Current Philosopher puts down both chopsticks
+	chopsticks[which] = false;
+	chopsticks[(which + 1) % numPhils] = false;
+			
+	printf("***Philosopher %i puts down chopstick[%i].\n", which, which);
+	printf("***Philosopher %i puts down chopstick[%i].\n", which, (which + 1) % numPhils);
+	
+	//Current Philosopher starts thinking
+	printf("***Philosopher %i has started thinking \n", which);
+	
+	numMeals--;
+	printf("***%i meals left \n", numMeals);
+	//Eating for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+		
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+	
+	}
+
+}
+
+
+//-------------------------------------------------------------
+//--------------------DINE2 for Task4--------------------------
+//-------------------------------------------------------------
+void Dine2(int which)
+{
+
+	int waitUntil;
+	int waitCounter;
+	
+	//Current Philosopher enters the room
+	numPhilsEntered++;
+	printf("***Philosopher %i has entered the room. \n", which);
+	while(numPhilsEntered < numPhils)
+		currentThread->Yield();
+
+	//Current Philosopher sits at the table
+	numPhilsSat++;
+	printf("***Philosopher %i has sat down \n", which);
+	while(numPhilsSat < numPhils)
+		currentThread->Yield();
+	/*
 	//If available, current Philosopher picks up both chopsticks
 	if(chopsticks[which] == false)
 	{
@@ -461,7 +565,7 @@ void Dine(int which)
 			if(chopsticks[(which + 1) % numPhils] == true)
 				chopsticks[which] = false;
 			else		
-			chopsticks[(which + 1) % numPhils] = true;
+				chopsticks[(which + 1) % numPhils] = true;
 			
 			printf("***Philosopher %i picks up chopstick[%i].\n", which, which);
 			printf("***Philosopher %i picks up chopstick[%i].\n", which, (which + 1) % numPhils);
@@ -476,7 +580,7 @@ void Dine(int which)
 	//Current Philosopher starts eating
 	printf("***Philosopher %i has started eating \n", which);
 	
-	/*
+	
 	//Eating for 2-5 cycles
 	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
 	waitCounter = 0;
@@ -514,3 +618,4 @@ void Dine(int which)
 	numMeals--;*/
 
 }
+
