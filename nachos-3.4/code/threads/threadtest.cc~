@@ -24,12 +24,12 @@ bool *chopsticks;
 typedef int semaphore;
 semaphore mutex = 1;
 semaphore *semChops;
-/*
+
 int P;
 int S;
 int M;
-bool *postOffice;
-*/
+bool **postOffice;
+
 
 //----------------------------------------------------------------------
 // InputType
@@ -125,10 +125,13 @@ void task34Input(int taskNum);
 void Dine1(int threadNum);
 void Dine2(int threadNum);
 
-/*
+
 void task56Input(int taskNum);
 void Post1(int threadNum);
-void Post2(int threadNum);*/
+void readMail(int personNum);
+void composeMail(int personNum);
+int mailResend(int receiver, int mailPosition);
+void Post2(int threadNum);
 
 void
 SimpleThread(int which)
@@ -166,10 +169,10 @@ ThreadTest()
 	task34Input(3);
 	else if (atoi(taskToDo) == 4)
 	task34Input(4);
-	/*else if (atoi(taskToDo) == 5)
+	else if (atoi(taskToDo) == 5)
 		task56Input(5);
 	else if (atoi(taskToDo) == 6)
-		task56Input(6);*/
+		task56Input(6);
     else {
     	printf("***Error, improper input or no -A command found\n");
     	currentThread->Finish();
@@ -407,7 +410,7 @@ void Shout(int threadNum) {
 }
 
 //-------------------------------------------------------------
-//--------------------Input for Tasks 5 & 6-----------------------------------
+//--------------------Input for Tasks 5 & 6--------------------
 //-------------------------------------------------------------
 void task34Input(int taskNum){
 	char * buffer = new char[256];
@@ -648,7 +651,7 @@ void Dine2(int which)
 //-------------------------------------------------------------
 //--------------------Input for Tasks 5 & 6--------------------
 //-------------------------------------------------------------
-/*
+
 void task56Input(int taskNum)
 {
 	//P= number of people
@@ -690,7 +693,10 @@ void task56Input(int taskNum)
 	// Convert input to number messages to be sent
 	M = atoi(buffer);
 
-	postOffice = new bool[P][S];
+	//postOffice = new bool*[P][S];
+	postOffice = new bool* [P];
+	for (int i = 0; i < P; i++)
+		postOffice = new bool[S];
 
 	printf("\n\n");
 	
@@ -771,7 +777,7 @@ void composeMail(int personNum)
 	bool hasMail = false;
 	int waitUntil, waitCounter;
 	int send = 1;
-	int receiver = Random % P; // Random recipient of the message
+	int receiver = Random() % P; // Random recipient of the message
 	// Find a new recipient if the Random recipient happens to be the sender
 	while (receiver == personNum)
 		receiver = Random() % P;
@@ -779,7 +785,7 @@ void composeMail(int personNum)
 	while (postOffice[receiver][mailPosition] == true)
 		mailPosition++;
 	
-	if (postOffice[recevier][mailPosition] == false)
+	if (postOffice[receiver][mailPosition] == false)
 	{
 		// message has been sent to recipient
 		postOffice[receiver][mailPosition] = true;
@@ -800,10 +806,10 @@ void composeMail(int personNum)
 				postOffice[receiver][i] = true;
 				M--;
 			}
-		while (send < 3)
-			mailResend(recevier, mailPosition);
+			while (send < 3)
+				mailResend(receiver, mailPosition);
 		
-
+		}
 	
 	}
 		
@@ -813,4 +819,4 @@ int mailResend(int receiver, int mailPosition)
 {
 	
 }
-*/
+
