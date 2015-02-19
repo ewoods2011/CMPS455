@@ -21,6 +21,9 @@ int numPhilsEntered = 0;
 int numPhilsSat = 0;
 int numMeals;
 bool *chopsticks;
+typedef int semaphore;
+semaphore mutex = 1;
+semaphore *semChops;
 /*
 int P;
 int S;
@@ -404,7 +407,7 @@ void Shout(int threadNum) {
 }
 
 //-------------------------------------------------------------
-//--------------------TASK 3-----------------------------------
+//--------------------Input for Tasks 5 & 6-----------------------------------
 //-------------------------------------------------------------
 void task34Input(int taskNum){
 	char * buffer = new char[256];
@@ -421,9 +424,6 @@ void task34Input(int taskNum){
 	
 	//Convert Number of Philosophers
 	numPhils = atoi(buffer);
-
-	//Create an array of chopsticks with one per philosopher
-	chopsticks = new bool[numPhils];
 	
 	//Collect Input
 	printf("***Enter desired number of meals to eat: ");
@@ -442,6 +442,8 @@ void task34Input(int taskNum){
 	
 	//Set up our loop to fork numPhils
 	if(taskNum == 3){
+		//Create an array of chopsticks with one per philosopher
+		chopsticks = new bool[numPhils];
 		Thread * t;
 		for (int i = 0; i < numPhils; i++) {
 			t = new Thread("Task 3 Thread");
@@ -450,6 +452,8 @@ void task34Input(int taskNum){
 	}
 	else
 	{	
+		//Create an array of chopsticks with one per philosopher
+		semChops = new semaphore[numPhils];
 		Thread * t;
 		for (int i = 0; i < numPhils; i++) {
 			t = new Thread("Task 4 Thread");
