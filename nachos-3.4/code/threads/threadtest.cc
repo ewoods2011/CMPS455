@@ -11,6 +11,7 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "synch.h"
 
 //-----------------------GLOBAL VARIABLES-------------------------------
 char *shouts[5] = {"Ham Sandwich", "Turkey Sandwich", "Tuna Sandwich", 
@@ -21,9 +22,8 @@ int numPhilsEntered = 0;
 int numPhilsSat = 0;
 int numMeals;
 bool *chopsticks;
-typedef int semaphore;
-semaphore mutex = 1;
-semaphore *semChops;
+Semaphore *mutex = new Semaphore("Mutex semaphore for Task3", 1);
+Semaphore **semChops;
 /*
 int P;
 int S;
@@ -36,6 +36,14 @@ bool *postOffice;
 //		A simple enumeration type that is used to hold and say what type
 //		of input the user has given.
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
+
+//----------------------------------------------------------------------
+// philState
+//		A simple enumeration type that is used to hold and say what state
+//		each philosopher is currently in.
+enum philState {HUNGRY, EATING, THINKING};
+
+philState *state;
 
 //----------------------------------------------------------------------
 // Task1
@@ -124,6 +132,12 @@ void task34Input(int taskNum);
 
 void Dine1(int threadNum);
 void Dine2(int threadNum);
+
+void think(int i);
+void eat(int i);
+void take_chopsticks(int i);
+void put_chopsticks(int i);
+void test(int i);
 
 /*
 void task56Input(int taskNum);
@@ -407,7 +421,7 @@ void Shout(int threadNum) {
 }
 
 //-------------------------------------------------------------
-//--------------------Input for Tasks 5 & 6--------------------
+//--------------------Input for Tasks 3 & 4--------------------
 //-------------------------------------------------------------
 void task34Input(int taskNum){
 	char * buffer = new char[256];
@@ -453,7 +467,12 @@ void task34Input(int taskNum){
 	else
 	{	
 		//Create an array of chopsticks with one per philosopher
-		semChops = new semaphore[numPhils];
+		semChops = new Semaphore*[numPhils];
+		for(int i = 0; i < numPhils; i++)
+		{
+			semChops[i] = new Semaphore("New Semaphore for a chopstick", 1);
+		}
+		state = new philState[numPhils];
 		Thread * t;
 		for (int i = 0; i < numPhils; i++) {
 			t = new Thread("Task 4 Thread");
@@ -565,8 +584,7 @@ void Dine1(int which)
 void Dine2(int which)
 {
 
-	int waitUntil;
-	int waitCounter;
+
 	
 	//Current Philosopher enters the room
 	numPhilsEntered++;
@@ -579,68 +597,88 @@ void Dine2(int which)
 	printf("***Philosopher %i has sat down \n", which);
 	while(numPhilsSat < numPhils)
 		currentThread->Yield();
-	/*
-	//If available, current Philosopher picks up both chopsticks
-	if(chopsticks[which] == false)
+
+	while(numMeals > 0){
+		think(which);
+		take_chopsticks(which);
+		eat(which);
+		numMeals--;
+		printf("***%i meals left \n", numMeals);
+		put_chopsticks(which);
+	}
+}
+
+void think(int i)
+{
+	int waitUntil;
+	int waitCounter;
+	//Thinking for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+	
+	state[i] = THINKING;
+	printf("***Philosopher %i has started thinking. \n", i);
+		
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
 	{
-		if(chopsticks[(which + 1) % numPhils] == false)
+		currentThread->Yield();
+		waitCounter++;
+	}
+}
+
+void eat(int i)
+{
+	int waitUntil;
+	int waitCounter;
+	//Eating for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+	
+	printf("***Philosopher %i has started eating. \n", i);
+		
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+}
+
+void take_chopsticks(int i)
+{
+	mutex->P();
+	state[i] = HUNGRY;
+	test(i);
+	mutex->V();
+	semChops[i]->P();
+}
+
+void put_chopsticks(int i)
+{
+	mutex->P();
+	state[i] = THINKING;
+	test((i + numPhils - 1) % numPhils);
+	test((i + 1) % numPhils);
+	mutex->V();
+
+}
+
+void test(int i)
+{
+	if(state[i] == HUNGRY && 
+		state[((i + numPhils - 1) % numPhils)] != EATING &&
+		state[((i + 1) % numPhils)] != EATING)
 		{
-			chopsticks[which] = true;
-			
-			if(chopsticks[(which + 1) % numPhils] == true)
-				chopsticks[which] = false;
-			else		
-				chopsticks[(which + 1) % numPhils] = true;
-			
-			printf("***Philosopher %i picks up chopstick[%i].\n", which, which);
-			printf("***Philosopher %i picks up chopstick[%i].\n", which, (which + 1) % numPhils);
+			state[i] = EATING;
+			semChops[i]->V();
+			semChops[((i + numPhils - 1) % numPhils)]->V();
+			printf("***Philosopher %i has picked up chopstick[%i]. \n", i, i);
+			printf("***Philosopher %i has picked up chopstick[%i]. \n", i, ((i + numPhils - 1) % numPhils));
+		
 		}
-	}
-	else
-	{
-		while((chopsticks[which] == true) && (chopsticks[(which + 1) % numPhils] == true))
-			currentThread->Yield();
-	}
-	
-	//Current Philosopher starts eating
-	printf("***Philosopher %i has started eating \n", which);
-	
-	
-	//Eating for 2-5 cycles
-	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
-	waitCounter = 0;
-		
-	//Busy waiting loop
-	//Keep yielding until the waitCounter hits the waitUntil
-	while (waitCounter < waitUntil) 
-	{
-		currentThread->Yield();
-		waitCounter++;
-	}
-	
-	//Current Philosopher puts down both chopsticks
-	chopsticks[which] = false;
-	chopsticks[(which + 1) % numPhils] = false;
-			
-	printf("***Philosopher %i puts down chopstick[%i].\n", which, which);
-	printf("***Philosopher %i puts down chopstick[%i].\n", which, (which + 1) % numPhils);
-	
-	//Current Philosopher starts thinking
-	printf("***Philosopher %i has started thinking \n", which);
-	
-	//Eating for 2-5 cycles
-	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
-	waitCounter = 0;
-		
-	//Busy waiting loop
-	//Keep yielding until the waitCounter hits the waitUntil
-	while (waitCounter < waitUntil) 
-	{
-		currentThread->Yield();
-		waitCounter++;
-	}
-	
-	numMeals--;*/
 
 }
 
