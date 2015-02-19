@@ -21,11 +21,12 @@ int numPhilsEntered = 0;
 int numPhilsSat = 0;
 int numMeals;
 bool *chopsticks;
-/*
-int P;
+
+/*int P;
 int S;
 int M;
-*/
+bool *postOffice;*/
+
 
 //----------------------------------------------------------------------
 // InputType
@@ -121,11 +122,10 @@ void task34Input(int taskNum);
 void Dine1(int threadNum);
 void Dine2(int threadNum);
 
-/*
-void task56Input(int taskNum);
-void Post1();
-void Post2();
-*/
+
+/*void task56Input(int taskNum);
+void Post1(int threadNum);
+void Post2(int threadNum);*/
 
 void
 SimpleThread(int which)
@@ -158,10 +158,10 @@ ThreadTest()
 	task34Input(3);
 	else if (taskToDo == 4)
 	task34Input(4);
-	else if (taskToDo == 5)
+	/*else if (taskToDo == 5)
 		task56Input(5);
 	else if (taskToDo == 6)
-		task56Input(6);
+		task56Input(6);*/
     else {
     	printf("***Error, improper input or no -A command found\n");
     	currentThread->Finish();
@@ -643,7 +643,7 @@ void Dine2(int which)
 void task56Input(int taskNum)
 {
 	//P= number of people
-	//S= number of messages in a person's mailbox
+	//S= number of messages mailbox can hold
 	//M= number of messages to be sent
 
 	char * buffer = new char[256];
@@ -667,7 +667,7 @@ void task56Input(int taskNum)
 		printf("***Input must be in integer format.\n\n");
 		currentThread->Finish();
 	}
-	// Convert input to number of people
+	// Convert input to number of messages mailbox can hold
 	S = atoi(buffer);
 
 	//Collect Input
@@ -678,15 +678,17 @@ void task56Input(int taskNum)
 		printf("***Input must be in integer format.\n\n");
 		currentThread->Finish();
 	}
-	// Convert input to number of people
+	// Convert input to number messages to be sent
 	M = atoi(buffer);
+
+	postOffice = new bool[P][S];
 
 	printf("\n\n");
 	
-	//Set up our loop to fork numPhils
+	//Set up our loop to fork Number of People in Simulation
 	if(taskNum == 5){
 		Thread * t;
-		for (int i = 0; i < numPhils; i++) {
+		for (int i = 0; i < P; i++) {
 			t = new Thread("Task 5 Thread");
 			t->Fork(Post1, i);
 		}
@@ -694,7 +696,7 @@ void task56Input(int taskNum)
 	else
 	{	
 		Thread * t;
-		for (int i = 0; i < numPhils; i++) {
+		for (int i = 0; i < P; i++) {
 			t = new Thread("Task 6 Thread");
 			t->Fork(Post2, i);
 		}
@@ -705,5 +707,79 @@ void task56Input(int taskNum)
 	currentThread->Finish();
 }
 */
+//-------------------------------------------------------------
+//--------------------POST1 for Task 5-------------------------
+//-------------------------------------------------------------
+/*
+void Post1(int which)
+{
+	printf("Person %i entered the Post Office.\n", which);
+	readMail(which);
+	composeMail(which);
+	//int numMessagesRead = 0; // Current count of messages read by a person
+	
+	
+}
 
+void readMail(int personNum)
+{
+	
+	//int mailPosition = S - 1;
+	//while (postOffice[personNum][mailPosition] == false)
+	//	mailPosition--;
+	// true means there is a message in that position
+	//if (postOffice[personNum][mailPosition] == true)
+	//{
+		// read the message by making the position false
+	//	postOffice[personNum][mailPosition] = false;
+	//	Yield();
+		
+	//if (mailPosition == 0)
+	
+	for (int i = 0; i < S; i++)
+	{
+		if (postOffice[personNum][i] == true)
+		{
+			printf("Person %d read message %i.\n", personNum, i);
+			postOffice[personNum][i] = false;
+			Yield();
+		}
+		
+	}
+}
+
+void composeMail(int personNum)
+{
+	int waitUntil, waitCounter;
+	int resend = 1;
+	int receiver = Random % P; // Random recipient of the message
+	// Find a new recipient if the Random recipient happens to be the sender
+	while (receiver == personNum)
+		receiver = Random() % P;
+	int mailPosition = 0;
+	while (postOffice[receiver][mailPosition] == true)
+		mailPosition++;
+	
+	if (postOffice[recevier][mailPosition] == false)
+	{
+		// message has been sent to recipient
+		postOffice[receiver][mailPosition] = true;
+		M--;
+	}
+	else
+	{// busy wait loop or retry idk which should go first
+		// make retry function to resend 2 more times before deadlock prevention
+		//while (resend < 3)
+		//	mailResend(recevier, mailPosition);
+		
+
+	
+	}
+		
+}
+
+int mailResend(int receiver, int mailPosition)
+{
+	
+}*/
 
