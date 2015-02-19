@@ -21,6 +21,11 @@ int numPhilsEntered = 0;
 int numPhilsSat = 0;
 int numMeals;
 bool *chopsticks;
+/*
+int P;
+int S;
+int M;
+*/
 
 //----------------------------------------------------------------------
 // InputType
@@ -116,6 +121,12 @@ void task34Input(int taskNum);
 void Dine1(int threadNum);
 void Dine2(int threadNum);
 
+/*
+void task56Input(int taskNum);
+void Post1();
+void Post2();
+*/
+
 void
 SimpleThread(int which)
 {
@@ -147,6 +158,10 @@ ThreadTest()
 	task34Input(3);
 	else if (taskToDo == 4)
 	task34Input(4);
+	/*else if (taskToDo == 5)
+		task56Input(5);
+	else if (taskToDo == 6)
+		task56Input(6);*/
     else {
     	printf("***Error, improper input or no -A command found\n");
     	currentThread->Finish();
@@ -619,4 +634,76 @@ void Dine2(int which)
 	numMeals--;*/
 
 }
+
+
+//-------------------------------------------------------------
+//--------------------Input for Tasks 5 & 6--------------------
+//-------------------------------------------------------------
+/*
+void task56Input(int taskNum)
+{
+	//P= number of people
+	//S= number of messages in a person's mailbox
+	//M= number of messages to be sent
+
+	char * buffer = new char[256];
+	
+	//Collect Input
+	printf("***Enter desired number of participating people: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	// Convert input to number of people
+	P = atoi(buffer);
+	
+	//Collect Input
+	printf("***Enter desired number of messages in a person's mailbox: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	// Convert input to number of people
+	S = atoi(buffer);
+
+	//Collect Input
+	printf("***Enter desired number of messages to be sent: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	// Convert input to number of people
+	M = atoi(buffer);
+
+	printf("\n\n");
+	
+	//Set up our loop to fork numPhils
+	if(taskNum == 5){
+		Thread * t;
+		for (int i = 0; i < numPhils; i++) {
+			t = new Thread("Task 5 Thread");
+			t->Fork(Post1, i);
+		}
+	}
+	else
+	{	
+		Thread * t;
+		for (int i = 0; i < numPhils; i++) {
+			t = new Thread("Task 6 Thread");
+			t->Fork(Post2, i);
+		}
+	
+	}
+	
+	
+	currentThread->Finish();
+}
+*/
+
 
