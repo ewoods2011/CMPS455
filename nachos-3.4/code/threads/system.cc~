@@ -19,7 +19,7 @@ Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
-int taskToDo;		// for -A to decide what to run
+char *taskToDo;		// for -A to decide what to run
 
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
 
@@ -84,6 +84,7 @@ Initialize(int argc, char **argv)
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
+	taskToDo = "";
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
@@ -118,7 +119,7 @@ Initialize(int argc, char **argv)
 		//InputType iType = EvaluateInput(*(argv + 1));
 		
 		//if (iType == INT) {
-			taskToDo = atoi(*(argv + 1)); //Set which task we want
+			taskToDo = *(argv + 1); //Set which task we want
 			argCount = 2;
 		//} else
 			//printf("Invalid input for -A command");

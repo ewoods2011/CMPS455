@@ -21,12 +21,12 @@ int numPhilsEntered = 0;
 int numPhilsSat = 0;
 int numMeals;
 bool *chopsticks;
-
-/*int P;
+/*
+int P;
 int S;
 int M;
-bool *postOffice;*/
-
+bool *postOffice;
+*/
 
 //----------------------------------------------------------------------
 // InputType
@@ -122,8 +122,8 @@ void task34Input(int taskNum);
 void Dine1(int threadNum);
 void Dine2(int threadNum);
 
-
-/*void task56Input(int taskNum);
+/*
+void task56Input(int taskNum);
 void Post1(int threadNum);
 void Post2(int threadNum);*/
 
@@ -149,18 +149,23 @@ ThreadTest()
 {
     DEBUG('t', "Entering ThreadTest");
 	
+	if (EvaluateInput(taskToDo) != INT) {
+		printf("***Error, improper input or no -A command found\n");
+		currentThread->Finish();
+	}
+
 	//Decide which task
-	if (taskToDo == 1)
+	if (atoi(taskToDo) == 1)
 		Task1();
-	else if (taskToDo == 2)
+	else if (atoi(taskToDo) == 2)
     	Task2();
-	else if (taskToDo == 3)
+	else if (atoi(taskToDo) == 3)
 	task34Input(3);
-	else if (taskToDo == 4)
+	else if (atoi(taskToDo) == 4)
 	task34Input(4);
-	/*else if (taskToDo == 5)
+	/*else if (atoi(taskToDo) == 5)
 		task56Input(5);
-	else if (taskToDo == 6)
+	else if (atoi(taskToDo) == 6)
 		task56Input(6);*/
     else {
     	printf("***Error, improper input or no -A command found\n");
@@ -706,11 +711,11 @@ void task56Input(int taskNum)
 	
 	currentThread->Finish();
 }
-*/
+
 //-------------------------------------------------------------
 //--------------------POST1 for Task 5-------------------------
 //-------------------------------------------------------------
-/*
+
 void Post1(int which)
 {
 	int waitUntil;
@@ -756,8 +761,7 @@ void readMail(int personNum)
 		
 	}
 }
-*/
-/*
+
 void composeMail(int personNum)
 {
 	bool hasMail = false;
