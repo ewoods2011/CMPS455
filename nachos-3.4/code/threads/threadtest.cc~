@@ -713,11 +713,20 @@ void task56Input(int taskNum)
 /*
 void Post1(int which)
 {
+	int waitUntil;
+	int waitCounter;
 	printf("Person %i entered the Post Office.\n", which);
 	readMail(which);
 	composeMail(which);
 	//int numMessagesRead = 0; // Current count of messages read by a person
-	
+	printf("Person %i left the Post Office.\n", which);
+	waitUntil = (Random() % 4) + 2;
+	waitCounter = 0;
+	while (waitCounter < waitUntil)
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
 	
 }
 
@@ -742,16 +751,18 @@ void readMail(int personNum)
 		{
 			printf("Person %d read message %i.\n", personNum, i);
 			postOffice[personNum][i] = false;
-			Yield();
+			currentThread->Yield();
 		}
 		
 	}
 }
-
+*/
+/*
 void composeMail(int personNum)
 {
+	bool hasMail = false;
 	int waitUntil, waitCounter;
-	int resend = 1;
+	int send = 1;
 	int receiver = Random % P; // Random recipient of the message
 	// Find a new recipient if the Random recipient happens to be the sender
 	while (receiver == personNum)
@@ -769,8 +780,20 @@ void composeMail(int personNum)
 	else
 	{// busy wait loop or retry idk which should go first
 		// make retry function to resend 2 more times before deadlock prevention
-		//while (resend < 3)
-		//	mailResend(recevier, mailPosition);
+		// BusyWaiting Loop
+		//while (hasMail = true)
+		//	currentThread->Yield();
+
+		
+		for (int i = 0; i < M; i++)
+		{
+			if (postOffice[receiver][i] == false)
+			{
+				postOffice[receiver][i] = true;
+				M--;
+			}
+		while (send < 3)
+			mailResend(recevier, mailPosition);
 		
 
 	
@@ -781,5 +804,5 @@ void composeMail(int personNum)
 int mailResend(int receiver, int mailPosition)
 {
 	
-}*/
-
+}
+*/
