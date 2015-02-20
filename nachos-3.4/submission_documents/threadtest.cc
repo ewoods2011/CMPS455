@@ -11,17 +11,46 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "synch.h"
 
 //-----------------------GLOBAL VARIABLES-------------------------------
 char *shouts[5] = {"Ham Sandwich", "Turkey Sandwich", "Tuna Sandwich", 
 					"Chicken Sandwich", "Roast Beef Sandwich"};
 int numShouts;
+int numPhils;
+int numPhilsEntered = 0;
+int numPhilsSat = 0;
+int numMeals;
+bool **chopsticks;
+Semaphore *mutex = new Semaphore("Mutex semaphore for Task4", 1);
+Semaphore **semChops;
+
+int P = 0;
+int S = 0;
+int M = 0;
+int AllM;
+char *name;
+int messageRead = 0;
+int messageSend = 0;
+const int size = 3;
+Semaphore **boxOffice;
+bool **postOffice;
+bool hasMail = false;
+
 
 //----------------------------------------------------------------------
 // InputType
 //		A simple enumeration type that is used to hold and say what type
 //		of input the user has given.
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
+
+//----------------------------------------------------------------------
+// philState
+//		A simple enumeration type that is used to hold and say what state
+//		each philosopher is currently in.
+enum philState {HUNGRY, EATING, THINKING};
+
+philState *state;
 
 //----------------------------------------------------------------------
 // Task1
@@ -97,6 +126,50 @@ void Shout(int threadNum);
 //		purposes.
 //----------------------------------------------------------------------
 
+//----------------------------------------------------------------------
+// Task3
+//		Implementation of Task 3 problem.
+//		Prompts the user for a number of philosophers and a number of meals.
+//		Creates an array of chopsticks to use; one per philosopher
+
+//		Creates a thread for each philosopher and forks them to the Dine function.
+//		
+//----------------------------------------------------------------------
+// Edward Woods & Jason Woodworth worked on Tasks 1 & 2
+// Evan Perry & Troy Stockman worked on Tasks 3 & 4
+
+
+//ebw3559 & jww7675
+void task34Input(int taskNum);
+
+void Dine(int threadNum);
+
+void think(int i);
+void eat(int i);
+
+void take_chopsticks_BW(int i);
+void put_chopsticks_BW(int i);
+void test_BW(int i);
+
+void take_chopsticks(int i);
+void put_chopsticks(int i);
+void test(int i);
+
+//erp1067
+void task56Input(int taskNum);
+void Post1(int threadNum);
+void readingMail(int personNum);
+void composeMail(int personNum, bool hereAgain);
+void Busy(int personNum, bool hereAgain);
+void EnterPost(int threadNum, bool hereAgain);
+void LeavePost(int threadNum, bool hereAgain);
+//tas6329
+void Post2(int threadNum);
+void ReadMail(int num);
+void ComposeMessage(int num);
+void LeavingPost(int threadNum);
+void Entering(int threadNum);
+
 void
 SimpleThread(int which)
 {
@@ -119,11 +192,24 @@ ThreadTest()
 {
     DEBUG('t', "Entering ThreadTest");
 	
+	if (EvaluateInput(taskToDo) != INT) {
+		printf("***Error, improper input or no -A command found\n");
+		currentThread->Finish();
+	}
+
 	//Decide which task
-	if (taskToDo == 1)
+	if (atoi(taskToDo) == 1)
 		Task1();
-	else if (taskToDo == 2)
+	else if (atoi(taskToDo) == 2)
     	Task2();
+	else if (atoi(taskToDo) == 3)
+	task34Input(3);
+	else if (atoi(taskToDo) == 4)
+	task34Input(4);
+	else if (atoi(taskToDo) == 5)
+		task56Input(5);
+	else if (atoi(taskToDo) == 6)
+		task56Input(6);
     else {
     	printf("***Error, improper input or no -A command found\n");
     	currentThread->Finish();
@@ -359,3 +445,536 @@ void Shout(int threadNum) {
 	
 	currentThread->Finish();
 }
+
+//-------------------------------------------------------------
+//--------------------Input for Tasks 3 & 4--------------------
+//-------------------------------------------------------------
+void task34Input(int taskNum){
+	char * buffer = new char[256];
+
+	//Collect Input
+	printf("***Enter desired number of philosophers: ");
+	fgets(buffer, 256, stdin);
+
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+
+
+	//Convert Number of Philosophers
+	numPhils = atoi(buffer);
+	state = new philState[numPhils];
+
+	//Collect Input
+	printf("***Enter desired number of meals to eat: ");
+	fgets(buffer, 256, stdin);
+
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	} 
+
+
+	//Convert Number of Meals
+	numMeals = atoi(buffer);
+
+	printf("\n\n");
+
+	//Set up our loop to fork numPhils
+	if(taskNum == 3){
+		//Create an array of chopsticks with one per philosopher
+		chopsticks = new bool*[numPhils];
+		for(int i = 0; i < numPhils; i++)
+		{
+			chopsticks[i] = new bool[numPhils];
+		} 
+
+		Thread * t;
+		for (int i = 0; i < numPhils; i++) {
+			t = new Thread("Task 3 Thread");
+			t->Fork(Dine, i);
+		}
+	}
+	else
+	{	
+		//Create an array of chopsticks with one per philosopher
+		semChops = new Semaphore*[numPhils];
+		for(int i = 0; i < numPhils; i++)
+		{
+			semChops[i] = new Semaphore("New Semaphore for a chopstick", 0);
+		} 
+
+		Thread * t;
+		for (int i = 0; i < numPhils; i++) {
+			t = new Thread("Task 4 Thread");
+			t->Fork(Dine, i);
+		}
+
+	}
+
+
+	currentThread->Finish();
+}
+
+
+//-------------------------------------------------------------
+//--------------------DINE for Task3 & Task4-------------------
+//-------------------------------------------------------------
+void Dine(int which)
+{
+	//Current Philosopher enters the room
+	numPhilsEntered++;
+	printf("***Philosopher %i has entered the room. \n", which);
+	while(numPhilsEntered < numPhils)
+		currentThread->Yield();
+
+	//Current Philosopher sits at the table
+	numPhilsSat++;
+	printf("***Philosopher %i has sat down \n", which);
+	while(numPhilsSat < numPhils)
+		currentThread->Yield();
+
+	while(true){
+		if(numMeals > 0){
+			//Checks which task to do
+			if(atoi(taskToDo) == 3)
+				take_chopsticks_BW(which);
+			else if(atoi(taskToDo) == 4)
+			{
+				take_chopsticks(which);
+				eat(which);
+				put_chopsticks(which);
+				think(which);	
+			}
+		}
+		else{
+			numPhilsSat--;
+			printf("***Philosopher %i is ready to go. \n", which);
+			while(numPhilsSat > 0)
+				currentThread->Yield();
+
+			printf("***Philosopher %i has left. \n", which);
+			currentThread->Finish();
+		}
+	}
+
+}
+
+void think(int i)
+{
+	int waitUntil;
+	int waitCounter;
+	//Thinking for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+
+	state[i] = THINKING;
+	printf("***Philosopher %i has started thinking. \n", i);
+
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+
+}
+
+void eat(int i)
+{
+	int waitUntil;
+	int waitCounter;
+	//Eating for 2-5 cycles
+	waitUntil = (Random() % 4) + 2; //Random b/w 2-5
+	waitCounter = 0;
+
+	//Busy waiting loop
+	//Keep yielding until the waitCounter hits the waitUntil
+	while (waitCounter < waitUntil) 
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+
+	printf("***Philosopher %i has satiated his tum. \n", i);
+
+}
+
+void take_chopsticks_BW(int i)
+{
+	state[i] = HUNGRY;
+	test_BW(i);
+	put_chopsticks_BW(i);
+}
+
+void put_chopsticks_BW(int i)
+{
+	if(chopsticks[i][(i + 1) % numPhils] == true){
+		//Current Philosopher puts down both chopsticks
+		chopsticks[i][(i + 1) % numPhils] = false;
+		printf("***Philosopher %i has put down Left Chopstick. \n", i);
+		printf("***Philosopher %i has put down Right Chopstick. \n", i);
+		think(i);
+	}
+
+	test_BW((i + numPhils - 1) % numPhils);
+	test_BW((i + 1) % numPhils);
+
+}
+
+void test_BW(int i)
+{
+	if(state[i] == HUNGRY && 
+		state[((i + numPhils - 1) % numPhils)] != EATING &&
+		state[((i + 1) % numPhils)] != EATING){
+			if(chopsticks[i][(i + 1) % numPhils] == false && 
+				chopsticks[((i + numPhils - 1) % numPhils)][i] == false && 
+				chopsticks[(i + 1) % numPhils][(i + 2) % numPhils] == false)
+			{
+				chopsticks[i][(i + 1) % numPhils] = true;
+
+				printf("***Philosopher %i has picked up Left Chopstick. \n", i);
+				printf("***Philosopher %i has picked up Right Chopstick. \n", i);
+				printf("***Philosopher %i has started eating \n", i);
+				numMeals--;
+				printf("***%i meals left \n", numMeals);
+				eat(i);
+			}
+			else{
+				while(chopsticks[i][(i + 1) % numPhils] == true)
+					currentThread->Yield();
+			}
+	}
+}
+
+void take_chopsticks(int i)
+{
+	mutex->P();
+	state[i] = HUNGRY;
+	test(i);
+	mutex->V();
+	semChops[i]->P();
+
+}
+
+void put_chopsticks(int i)
+{
+	printf("***Philosopher %i has put down Left Chopstick. \n", i);
+	printf("***Philosopher %i has put down Right Chopstick. \n", i);
+	mutex->P();
+	state[i] = THINKING;
+	test((i + numPhils - 1) % numPhils);
+	test((i + 1) % numPhils);
+	mutex->V();
+
+
+}
+
+void test(int i)
+{
+	if(state[i] == HUNGRY && 
+		state[((i + numPhils - 1) % numPhils)] != EATING &&
+		state[((i + 1) % numPhils)] != EATING && 
+		numMeals > 0)
+	{
+
+		state[i] = EATING;
+		semChops[i]->V();
+		printf("***Philosopher %i has picked up Left Chopstick. \n", i);
+		printf("***Philosopher %i has picked up Right Chopstick. \n", i);
+		printf("***Philosopher %i has started eating. \n", i);
+		numMeals--;
+		printf("***%i meals left \n", numMeals);
+
+	}
+
+}
+
+
+//-------------------------------------------------------------
+//--------------------Input for Tasks 5 & 6--------------------
+//-------------------------------------------------------------
+
+void task56Input(int taskNum)
+{
+	//P= number of people
+	//S= number of messages mailbox can hold
+	//M= number of messages to be sent
+
+	char * buffer = new char[256];
+	
+	//Collect Input
+	printf("***Enter desired number of participating people: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	// Convert input to number of people
+	P = atoi(buffer);
+	
+	//Collect Input
+	printf("***Enter desired number of messages in a person's mailbox: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	// Convert input to number of messages mailbox can hold
+	S = atoi(buffer);
+
+	//Collect Input
+	printf("***Enter desired number of messages to be sent: ");
+	fgets(buffer, 256, stdin);
+	
+	if (EvaluateInput(buffer) != INT) {
+		printf("***Input must be in integer format.\n\n");
+		currentThread->Finish();
+	}
+	// Convert input to number messages to be sent
+	M = atoi(buffer);
+
+	printf("\n\n");
+	
+	//Set up our loop to fork Number of People in Simulation
+	if(taskNum == 5){
+		//Create an array 
+		postOffice = new bool*[P];
+		for(int i = 0; i < P; i++)
+		{
+			postOffice[i] = new bool[S];
+		} 
+		messageSend = M - 1;
+		Thread * t;
+		for (int i = 0; i < P; i++) {
+			t = new Thread("Task 5 Thread");
+			t->Fork(Post1, i);
+		}
+	}
+	else
+	{	
+		boxOffice = new Semaphore*[P];
+		for(int j = 0; j < P; j++)
+		{
+			boxOffice[j] = new Semaphore(name, S);
+		}
+		
+		messageSend = M;
+
+		Thread * t;
+		for (int i = 0; i < P; i++) {
+			t = new Thread("Task 6 Thread");
+			t->Fork(Post2, i);
+		}
+	}
+	
+	currentThread->Finish();
+}
+
+//-------------------------------------------------------------
+//--------------------POST1 for Task 5-------------------------
+//-------------------------------------------------------------
+
+void Post1(int which)
+{
+	bool hereAgain = false;
+	EnterPost(which, hereAgain);
+	LeavePost(which, hereAgain);
+	
+	
+}
+
+void readingMail(int personNum)
+{
+
+	for (int i = 0; i < S; i++)
+	{
+		if (postOffice[personNum][i] == true)
+		{
+			printf("Person %d read message from Person %i.\n", personNum, i);
+			postOffice[personNum][i] = false;
+			currentThread->Yield();
+			messageRead++;
+		}
+		
+	}
+	hasMail = false;
+}
+
+void composeMail(int personNum, bool hereAgain)
+{
+	int receiver = Random() % P; // Random recipient of the message
+		// Find a new recipient if the Random recipient happens to be the sender
+	while (receiver == personNum)
+		receiver = Random() % P;
+	
+	int mailPosition = 0;
+	if(hereAgain == false)
+	{
+		while (postOffice[receiver][mailPosition] == true && mailPosition < S)
+		{
+				mailPosition++;
+		}
+	}
+	
+	if (postOffice[receiver][mailPosition] == false)
+	{
+		// message has been sent to recipient
+		postOffice[receiver][mailPosition] = true;
+		printf("Person %d compose message to Person %i.\n", personNum, receiver);
+
+		hasMail = true;
+
+		messageSend = messageSend - 1;
+	}
+	else
+	{
+		
+		if(hereAgain == false)
+		{   
+			// Call BusyWaiting Loop
+			Busy(personNum, hereAgain);
+		}
+		else
+		{
+			readingMail(personNum);
+			hereAgain = false;
+		}
+	}
+		
+}
+
+void Busy(int personNum, bool hereAgain)
+{
+	int waiting = 0;
+	while(waiting < 3){
+		currentThread->Yield();
+		waiting++;
+	}
+	hereAgain = true;
+	composeMail(personNum, hereAgain);
+
+}
+
+void EnterPost(int threadNum, bool hereAgain)
+{
+	printf("Person %i entered the Post Office.\n", threadNum);
+	if (hasMail == true)
+	{
+		readingMail(threadNum);
+	}
+	else
+	{
+		if(messageSend > 0)
+			{composeMail(threadNum, hereAgain);}
+	}
+	
+	LeavePost(threadNum, hereAgain);
+
+}
+
+void LeavePost(int threadNum, bool hereAgain)
+{
+	int waitUntil, waitCounter;
+	printf("Person %i left the Post Office.\n", threadNum);
+	waitUntil = (Random() % 4) + 2;
+	waitCounter = 0;
+	while (waitCounter < waitUntil)
+	{
+		currentThread->Yield();
+		waitCounter++;
+	}
+	if(messageSend == 0)
+	{
+		currentThread->Finish();
+	}
+
+		
+		EnterPost(threadNum, hereAgain);
+}
+
+//-------------------------------------------------------------
+//--------------------POST2 for Task 6-------------------------
+//-------------------------------------------------------------
+
+void 
+ReadMail(int num)
+{
+	if(boxOffice[num]->getValue() <  S)
+	{	
+		printf("Person %d read a mail from his mail box\n", num);
+		boxOffice[num]->V();
+		currentThread->Yield();
+		messageRead++;
+		ReadMail(num);
+	}
+}
+
+void
+ComposeMessage(int num)
+{	
+	if ((messageSend-1) != -1)
+	{
+		int random = Random() % P;
+		while(random == num)
+		{
+			random = Random() % P;
+		}
+	
+		boxOffice[random]->P();
+		printf("Person %d compose a message for Person %d\n", num, random);
+		
+		messageSend = messageSend - 1;
+	}
+	
+}
+
+void
+LeavingPost(int threadNum)
+{
+	printf("Person %d has left the post office\n", threadNum);
+	int random = (Random() % 4) + 2;
+	while(random != 0)
+	{
+		currentThread->Yield();
+		random--;
+	}
+	
+	if(messageSend == 0 && messageRead == M)
+	{
+		currentThread->Finish();
+	}
+
+	if((messageRead < M) || (messageSend > 0))
+	{	
+		Entering(threadNum);
+	}
+}
+
+void
+Entering(int threadNum)
+{
+	printf("Person %d has enter the post office.\n", threadNum);
+	
+	if(boxOffice[threadNum]->getValue() < S)
+	{
+		ReadMail(threadNum);
+	}
+	else
+	{
+		ComposeMessage(threadNum);
+	}
+	
+	LeavingPost(threadNum);
+}
+
+void
+Post2(int threadNum)
+{
+	Entering(threadNum);
+}
+
