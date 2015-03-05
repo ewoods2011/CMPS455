@@ -43,7 +43,7 @@ Thread::Thread(char* threadName)
 	numberOfChildren = 0;
 	parent = NULL;
 	parentJoin = false;
-	threadID = globalThreadID++;
+	
 #endif
 }
 

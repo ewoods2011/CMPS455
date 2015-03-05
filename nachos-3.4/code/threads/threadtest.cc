@@ -848,7 +848,7 @@ void composeMail(int personNum, bool hereAgain)
 		
 }
 
-void Busy(int personNum, bool hereAgain)
+void Busy(int personNum, bool hereAgain)// My 3 loop
 {
 	int waiting = 0;
 	while(waiting < 3){

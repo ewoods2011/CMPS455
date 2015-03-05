@@ -135,7 +135,11 @@ void Shout(int threadNum);
 //		Creates a thread for each philosopher and forks them to the Dine function.
 //		
 //----------------------------------------------------------------------
-//ebw3559 & jww
+// Edward Woods & Jason Woodworth worked on Tasks 1 & 2
+// Evan Perry & Troy Stockman worked on Tasks 3 & 4
+
+
+//ebw3559 & jww7675
 void task34Input(int taskNum);
 
 void Dine(int threadNum);

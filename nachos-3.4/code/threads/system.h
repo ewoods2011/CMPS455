@@ -30,6 +30,8 @@ extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
 extern char *taskToDo;// Maybe Throw away IDK
 
+extern int globalThreadID;
+
 #ifdef USER_PROGRAM
 #include "machine.h"
 extern Machine* machine;	// user program memory and registers

@@ -110,7 +110,7 @@ class Thread {
 	int numberOfChildren;
 	Thread *parent;
 	bool parentJoin;
-	int threadId; // probably put near currentThread
+	char threadId; // probably put near currentThread
 	//TODO What resources it is using
 
 
