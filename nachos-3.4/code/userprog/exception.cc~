@@ -32,6 +32,9 @@
 
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
+static void SExec();
+static void SExit(int status);
+void processCreator(int arg);
 
 // end FA98
 
@@ -69,6 +72,7 @@ ExceptionHandler(ExceptionType which)
 	int Result;
 	int i, j;
 	char *ch = new char [500];
+	int value;
 
 	switch ( which )
 	{
@@ -87,6 +91,7 @@ ExceptionHandler(ExceptionType which)
 
 		case SC_Halt :
 			DEBUG('t', "Shutdown, initiated by user program.\n");
+			printf("HALTING");
 			interrupt->Halt();
 			break;
 
@@ -120,8 +125,65 @@ ExceptionHandler(ExceptionType which)
 			}
 			break;
 
+		case SC_Exec:
+		{
+				/* write code for handling Exec */
+				/* ----------------------------*/
+				/* be careful to on and off interrupts at proper places */
+				/* ----------------------------*/
+				/* return the process id for the newly created process, return value
+				is to write at R2 */
+				
+				//machine->WriteRegister(2, processed);
+				
+
+				/* routine task – do at last -- generally manipulate PCReg,
+				PrevPCReg, NextPCReg so that they point to proper place*/
+				int pc;
+				
+    			IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts				 			
+				pc=machine->ReadRegister(PCReg);
+				machine->WriteRegister(PrevPCReg,pc);
+				pc=machine->ReadRegister(NextPCReg);
+				machine->WriteRegister(PCReg,pc);
+				pc += 4;
+				machine->WriteRegister(NextPCReg,pc);
+				
+				(void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
+				
+				int fileAddr = machine->ReadRegister(4);		//Read register 4 to get address of filename
+				char *filename = new char[100]; 
+				
+				if(!machine->ReadMem(fileAddr,1,&value))return;
+					i=0;
+					while( value!=0 )
+					{
+						filename[i]=(char)value;
+						fileAddr+=1;
+						i++;
+						if(!machine->ReadMem(fileAddr,1,&value))return;
+					}
+					filename[i]=(char)0;
+				
+				printf(filename);
+				
+		}
+        break;
+        case SC_Join:
+
+            break;
+
+        case SC_Yield:
+
+            break;
+        case SC_Exit:
+				SExit(0);
+            break;
+            
 			default :
 			//Unprogrammed system calls end up here
+				printf("Unprogrammed system call made. Nothing happens.");
+				SExit(0);
 			break;
 		}         
 		break;
@@ -130,37 +192,37 @@ ExceptionHandler(ExceptionType which)
 		puts ("ReadOnlyException");
 		if (currentThread->getName() == "main")
 		ASSERT(FALSE);  //Not the way of handling an exception.
-		//SExit(1);
+		SExit(1);
 		break;
 	case BusErrorException :
 		puts ("BusErrorException");
 		if (currentThread->getName() == "main")
 		ASSERT(FALSE);  //Not the way of handling an exception.
-		//SExit(1);
+		SExit(1);
 		break;
 	case AddressErrorException :
 		puts ("AddressErrorException");
 		if (currentThread->getName() == "main")
 		ASSERT(FALSE);  //Not the way of handling an exception.
-		//SExit(1);
+		SExit(1);
 		break;
 	case OverflowException :
 		puts ("OverflowException");
 		if (currentThread->getName() == "main")
 		ASSERT(FALSE);  //Not the way of handling an exception.
-		//SExit(1);
+		SExit(1);
 		break;
 	case IllegalInstrException :
 		puts ("IllegalInstrException");
 		if (currentThread->getName() == "main")
 		ASSERT(FALSE);  //Not the way of handling an exception.
-		//SExit(1);
+		SExit(1);
 		break;
 	case NumExceptionTypes :
 		puts ("NumExceptionTypes");
 		if (currentThread->getName() == "main")
 		ASSERT(FALSE);  //Not the way of handling an exception.
-		//SExit(1);
+		SExit(1);
 		break;
 
 		default :
@@ -224,6 +286,33 @@ static void SWrite(char *buffer, int size, int id)
 	//write to a unix file, later you need change to nachos file system.
 	if (id >= 2)
 	WriteFile(id,buffer,size);
+}
+
+static void SExec()
+{
+
+
+}
+
+static void SExit(int status)
+{
+
+	if(status == 0){
+		printf("Exited normally.");
+	}
+	if(status == 1){
+		printf("Exited abnormally.");
+	}
+	
+	currentThread->Finish();
+}
+
+void processCreator(int arg)
+{
+	currentThread->space->InitRegisters();
+	currentThread->space->RestoreState(); 	// load page table register
+	machine->Run(); 	// jump to the user progam
+	ASSERT(FALSE); 		// machine->Run never returns;
 }
 
 // end FA98

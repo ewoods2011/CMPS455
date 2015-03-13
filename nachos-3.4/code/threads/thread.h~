@@ -101,6 +101,7 @@ class Thread {
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
+    int getId() { return (threadId); }
 
 
 
@@ -110,7 +111,7 @@ class Thread {
 	int numberOfChildren;
 	Thread *parent;
 	bool parentJoin;
-	char threadId; // probably put near currentThread
+	int threadId; // probably put near currentThread
 	//TODO What resources it is using
 
 

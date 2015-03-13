@@ -120,11 +120,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
     
     // Mark the bitmap for every page taken up.
-    if(bitmap->NumClear() > numPages){ // Make sure there are enough clear pages to fit
+    if(bitmap->NumClear() > numPages){
     	for (int i = 2; i < numPages+2; i++)
     		bitmap->Mark(i);
-    } else {
-    	printf("Not enough Space\n");
     }
     printf("%d", bitmap->Find());
 	bitmap->Print();

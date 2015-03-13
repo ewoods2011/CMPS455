@@ -20,6 +20,7 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
 char *taskToDo;		// for -A to decide what to run
+int globalThreadID;
 
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
 
@@ -33,6 +34,7 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+BitMap *bitmap;
 #endif
 
 #ifdef NETWORK
@@ -89,6 +91,7 @@ Initialize(int argc, char **argv)
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
+    bitmap = new BitMap(32); 
 #endif
 #ifdef FILESYS_NEEDED
     bool format = FALSE;	// format disk

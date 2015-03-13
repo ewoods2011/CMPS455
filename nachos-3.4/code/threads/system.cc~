@@ -20,6 +20,7 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
 char *taskToDo;		// for -A to decide what to run
+int globalThreadID;
 
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
 
@@ -85,9 +86,11 @@ Initialize(int argc, char **argv)
     char* debugArgs = "";
     bool randomYield = FALSE;
 	taskToDo = "";
+	globalThreadID = 0;
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
+    bitmap = new BitMap(32); 
 #endif
 #ifdef FILESYS_NEEDED
     bool format = FALSE;	// format disk

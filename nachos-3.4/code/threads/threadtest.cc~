@@ -432,7 +432,7 @@ void Shout(int threadNum) {
 		waitUntil = (Random() % 4) + 2; //Random b/w 2-5
 		waitCounter = 0;
 		
-		printf("***Thread %d shouting: %s \n\n", threadNum, shouts[shout]);
+		printf("***Thread %d shouting: %s \n\n", currentThread->getId(), shouts[shout]);
 	
 		//Busy waiting loop
 		//Keep yielding until the waitCounter hits the waitUntil
@@ -848,7 +848,7 @@ void composeMail(int personNum, bool hereAgain)
 		
 }
 
-void Busy(int personNum, bool hereAgain)
+void Busy(int personNum, bool hereAgain)// My 3 loop
 {
 	int waiting = 0;
 	while(waiting < 3){
