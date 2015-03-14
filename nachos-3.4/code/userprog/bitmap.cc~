@@ -129,11 +129,13 @@ BitMap::NumClear()
 void
 BitMap::Print() 
 {
+#ifdef OLD
     printf("Bitmap set:\n"); 
     for (int i = 0; i < numBits; i++)
 		if (Test(i))
 	    	printf("%d, ", i);
-	
+#endif
+
 	printf("[");
 	for (int i = 0; i < numBits; i++) {
 		if (Test(i))

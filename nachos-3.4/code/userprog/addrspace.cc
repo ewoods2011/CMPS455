@@ -83,7 +83,17 @@ AddrSpace::AddrSpace(OpenFile *executable)
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
-
+	// Mark the bitmap for every page taken up.
+	if(numPages < bitmap->MaxSpace())  // Make sure there are enough clear pages to fit
+	{
+		for (int i = 0; i < numPages; i++)
+    		bitmap->Mark(i);
+	}
+	else
+		printf("Not enough space to run program.");
+	
+	bitmap->Print();
+	
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
 // first, set up the translation 

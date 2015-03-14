@@ -216,18 +216,18 @@ void AddrSpace::RestoreState()
 
 void AddrSpace::FirstFit()
 {
-	printf("First-fit algorithm is selected for memory allocation");
+	printf("First-fit algorithm is selected for memory allocation\n");
 
 }
 
 void AddrSpace::BestFit()
 {
-	printf("Best-fit algorithm is selected for memory allocation");
+	printf("Best-fit algorithm is selected for memory allocation\n");
 
 }
 
 void AddrSpace::WorstFit()
 {
-	printf("Worst-fit algorithm is selected for memory allocation");
+	printf("Worst-fit algorithm is selected for memory allocation\n");
 
 }

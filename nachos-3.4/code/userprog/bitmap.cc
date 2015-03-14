@@ -146,6 +146,27 @@ BitMap::Print()
     printf("]\n"); 
 }
 
+int
+BitMap::MaxSpace()
+{
+	int count = 0;
+	int max = 0;
+	for (int i = 0; i < numBits; i++)
+	{
+    	if(!Test(i))
+    		count++;
+    	if(Test(i) || i == numBits - 1)
+    	{
+    		if(count > max)
+    		{
+    			max = count;
+    			count = 0;
+    		}
+    	}		
+	}
+	return max;
+}
+
 // These aren't needed until the FILESYS assignment
 
 //----------------------------------------------------------------------
