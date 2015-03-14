@@ -88,7 +88,7 @@ Initialize(int argc, char **argv)
     char* debugArgs = "";
     bool randomYield = FALSE;
 	taskToDo = "";
-	memAllocation = "";
+	memAllocation = "1";
 	globalThreadID = 0;
 
 #ifdef USER_PROGRAM

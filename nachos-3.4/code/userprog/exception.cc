@@ -164,6 +164,7 @@ ExceptionHandler(ExceptionType which)
 						if(!machine->ReadMem(fileAddr,1,&value))return;
 					}
 					filename[i]=(char)0;
+					printf(filename);
 					
 				/*OpenFile *executable = fileSystem->Open(filename);
 				AddrSpace *space;

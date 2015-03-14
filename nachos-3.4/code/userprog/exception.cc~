@@ -141,7 +141,7 @@ ExceptionHandler(ExceptionType which)
 				PrevPCReg, NextPCReg so that they point to proper place*/
 				int pc;
 				
-    			/*IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts				 			
+    			IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts				 			
 				pc=machine->ReadRegister(PCReg);
 				machine->WriteRegister(PrevPCReg,pc);
 				pc=machine->ReadRegister(NextPCReg);
@@ -154,7 +154,7 @@ ExceptionHandler(ExceptionType which)
 				int fileAddr = machine->ReadRegister(4);		//Read register 4 to get address of filename
 				char *filename = new char[100]; 
 				
-				/*if(!machine->ReadMem(fileAddr,1,&value))return;
+				if(!machine->ReadMem(fileAddr,1,&value))return;
 					i=0;
 					while( value!=0 )
 					{
