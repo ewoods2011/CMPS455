@@ -117,18 +117,20 @@ AddrSpace::AddrSpace(OpenFile *executable)
     }
     
     
-    
+    printf("Need %d memory frames \n", numPages);
+    printf("Memory Before Allocation\n");
+    bitmap->Print();
     
     // Mark the bitmap for every page taken up.
     if(bitmap->NumClear() > numPages){ // Make sure there are enough clear pages to fit
-    	for (int i = 2; i < numPages+2; i++)
+    	for (int i = 0; i < numPages; i++)
     		bitmap->Mark(i);
     } else {
     	printf("Not enough Space\n");
     }
-    printf("%d", bitmap->Find());
-	bitmap->Print();
-	printf("%d", numPages);
+    
+    printf("Memory After Allocation\n");
+    bitmap->Print();
 }
 
 //----------------------------------------------------------------------

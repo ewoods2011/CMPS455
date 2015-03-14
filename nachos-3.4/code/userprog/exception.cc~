@@ -297,11 +297,13 @@ static void SExec()
 static void SExit(int status)
 {
 
+	//TODO check if current thread's parent is asleep.
+	//If so, wake them up.
 	if(status == 0){
-		printf("Exited normally.");
+		printf("Exited normally.\n\n");
 	}
 	if(status == 1){
-		printf("Exited abnormally.");
+		printf("Exited abnormally.\n\n");
 	}
 	
 	currentThread->Finish();

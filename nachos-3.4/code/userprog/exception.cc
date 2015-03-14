@@ -91,7 +91,7 @@ ExceptionHandler(ExceptionType which)
 
 		case SC_Halt :
 			DEBUG('t', "Shutdown, initiated by user program.\n");
-			printf("HALTING");
+			printf("HALTING\n");
 			interrupt->Halt();
 			break;
 
