@@ -91,7 +91,7 @@ ExceptionHandler(ExceptionType which)
 
 		case SC_Halt :
 			DEBUG('t', "Shutdown, initiated by user program.\n");
-			printf("HALTING");
+			printf("HALTING\n");
 			interrupt->Halt();
 			break;
 
@@ -141,7 +141,7 @@ ExceptionHandler(ExceptionType which)
 				PrevPCReg, NextPCReg so that they point to proper place*/
 				int pc;
 				
-    			IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts				 			
+    			/*IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts				 			
 				pc=machine->ReadRegister(PCReg);
 				machine->WriteRegister(PrevPCReg,pc);
 				pc=machine->ReadRegister(NextPCReg);
@@ -154,7 +154,7 @@ ExceptionHandler(ExceptionType which)
 				int fileAddr = machine->ReadRegister(4);		//Read register 4 to get address of filename
 				char *filename = new char[100]; 
 				
-				if(!machine->ReadMem(fileAddr,1,&value))return;
+				/*if(!machine->ReadMem(fileAddr,1,&value))return;
 					i=0;
 					while( value!=0 )
 					{
@@ -164,8 +164,13 @@ ExceptionHandler(ExceptionType which)
 						if(!machine->ReadMem(fileAddr,1,&value))return;
 					}
 					filename[i]=(char)0;
-				
-				printf(filename);
+					
+				/*OpenFile *executable = fileSystem->Open(filename);
+				AddrSpace *space;
+				space = new AddrSpace(executable);
+				Thread * t = new Thread(filename);
+				t->space = space;
+				int processId = t->getId(); /* create this function by yourself */ 
 				
 		}
         break;
@@ -290,20 +295,24 @@ static void SWrite(char *buffer, int size, int id)
 
 static void SExec()
 {
-
+	printf("Running");
 
 }
 
 static void SExit(int status)
 {
 
+	if(currentThread->parent != NULL){
+		Thread *parent = currentThread->parent;
+		parent->RestoreUserState();
+	}
 	//TODO check if current thread's parent is asleep.
 	//If so, wake them up.
 	if(status == 0){
-		printf("Exited normally.\n\n");
+		printf("\nExited normally.\n\n");
 	}
 	if(status == 1){
-		printf("Exited abnormally.\n\n");
+		printf("\nExited abnormally.\n\n");
 	}
 	
 	currentThread->Finish();

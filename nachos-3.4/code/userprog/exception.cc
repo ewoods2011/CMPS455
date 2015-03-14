@@ -164,8 +164,13 @@ ExceptionHandler(ExceptionType which)
 						if(!machine->ReadMem(fileAddr,1,&value))return;
 					}
 					filename[i]=(char)0;
-				
-				printf(filename);
+					
+				/*OpenFile *executable = fileSystem->Open(filename);
+				AddrSpace *space;
+				space = new AddrSpace(executable);
+				Thread * t = new Thread(filename);
+				t->space = space;
+				int processId = t->getId(); /* create this function by yourself */ 
 				
 		}
         break;
@@ -290,20 +295,24 @@ static void SWrite(char *buffer, int size, int id)
 
 static void SExec()
 {
-
+	printf("Running");
 
 }
 
 static void SExit(int status)
 {
 
+	if(currentThread->parent != NULL){
+		Thread *parent = currentThread->parent;
+		parent->RestoreUserState();
+	}
 	//TODO check if current thread's parent is asleep.
 	//If so, wake them up.
 	if(status == 0){
-		printf("Exited normally.\n\n");
+		printf("\nExited normally.\n\n");
 	}
 	if(status == 1){
-		printf("Exited abnormally.\n\n");
+		printf("\nExited abnormally.\n\n");
 	}
 	
 	currentThread->Finish();

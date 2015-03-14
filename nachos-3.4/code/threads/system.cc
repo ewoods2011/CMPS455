@@ -20,6 +20,7 @@ Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
 char *taskToDo;		// for -A to decide what to run
+char *memAllocation; // for -M to decide which memory allocation function to run
 int globalThreadID;
 
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
@@ -87,6 +88,7 @@ Initialize(int argc, char **argv)
     char* debugArgs = "";
     bool randomYield = FALSE;
 	taskToDo = "";
+	memAllocation = "";
 	globalThreadID = 0;
 
 #ifdef USER_PROGRAM
@@ -123,7 +125,8 @@ Initialize(int argc, char **argv)
 			argCount = 2;
 	} else if(!strcmp(*argv, "-M")) {
         ASSERT(argc > 1);
-
+			memAllocation = *(argv + 1); //Set which memory allocation to do
+			argCount = 2;
     } else if(!strcmp(*argv, "-x")) {
         ASSERT(argc > 1);
 

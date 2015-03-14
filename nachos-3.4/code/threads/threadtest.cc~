@@ -291,7 +291,7 @@ ValidateInput(int threadNum)
 //-------------------------------------------------------------
 //-------------------EVALUATE INPUT----------------------------
 //-------------------------------------------------------------
-InputType EvaluateInput(char * input) {
+static InputType EvaluateInput(char * input) {
 	//Bool types to check possibilities
 	bool maybeDecimal = false;
 	bool maybeNegative = false;
@@ -432,7 +432,7 @@ void Shout(int threadNum) {
 		waitUntil = (Random() % 4) + 2; //Random b/w 2-5
 		waitCounter = 0;
 		
-		printf("***Thread %d shouting: %s \n\n", currentThread->getId(), shouts[shout]);
+		printf("***Thread %d shouting: %s \n\n", threadNum, shouts[shout]);
 	
 		//Busy waiting loop
 		//Keep yielding until the waitCounter hits the waitUntil

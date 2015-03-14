@@ -30,6 +30,7 @@ extern Interrupt *interrupt;			// interrupt status
 extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
 extern char *taskToDo;// Maybe Throw away IDK
+extern char *memAllocation;
 extern int globalThreadID;
 extern BitMap *bitmap; // Bitmap for mapping memory
 

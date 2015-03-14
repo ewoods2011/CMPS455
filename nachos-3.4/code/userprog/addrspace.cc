@@ -21,6 +21,7 @@
 #include "noff.h"
 #ifdef HOST_SPARC
 #include <strings.h>
+#include "threadtest.h"
 #endif
 
 //----------------------------------------------------------------------
@@ -116,6 +117,19 @@ AddrSpace::AddrSpace(OpenFile *executable)
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
     
+    if(atoi(memAllocation) == 1)
+    	FirstFit();
+    else if(atoi(memAllocation) == 2)
+    	BestFit();
+    else if(atoi(memAllocation) == 3)
+    	WorstFit();
+    else
+    {
+		printf("***Error, improper input for -M command found\n");
+		currentThread->Finish();
+	}
+
+    
     
     printf("Need %d memory frames \n", numPages);
     printf("Memory Before Allocation\n");
@@ -198,4 +212,22 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+}
+
+void AddrSpace::FirstFit()
+{
+	printf("First-fit algorithm is selected for memory allocation\n");
+
+}
+
+void AddrSpace::BestFit()
+{
+	printf("Best-fit algorithm is selected for memory allocation\n");
+
+}
+
+void AddrSpace::WorstFit()
+{
+	printf("Worst-fit algorithm is selected for memory allocation\n");
+
 }

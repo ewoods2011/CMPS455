@@ -31,7 +31,7 @@ extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
 extern char *taskToDo;// Maybe Throw away IDK
 extern int globalThreadID;
-extern BitMap bitmap; // Bitmap for mapping memory
+extern BitMap *bitmap; // Bitmap for mapping memory
 
 #ifdef USER_PROGRAM
 #include "machine.h"
