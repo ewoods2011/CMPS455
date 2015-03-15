@@ -33,10 +33,10 @@ StartProcess(char *filename)
     space = new AddrSpace(executable);  
     
     //Make a new thread for the process and give it the space.
-    Thread * t = new Thread("Exec-ed Thread");
-    t->space = space; 
+
+    currentThread->space = space; 
     
-    int processId = t->getId();
+    int processId = currentThread->getId();
 
     delete executable;			// close file
 

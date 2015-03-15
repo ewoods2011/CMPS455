@@ -32,7 +32,7 @@
 
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
-static void SExec();
+static void SExec(char* filename);
 static void SExit(int status);
 void processCreator(int arg);
 
@@ -136,6 +136,7 @@ ExceptionHandler(ExceptionType which)
 				
 				//machine->WriteRegister(2, processed);
 				
+				printf("Process %d calls exec() system call\n", currentThread->threadId);
 
 				/* routine task – do at last -- generally manipulate PCReg,
 				PrevPCReg, NextPCReg so that they point to proper place*/
@@ -164,13 +165,8 @@ ExceptionHandler(ExceptionType which)
 						if(!machine->ReadMem(fileAddr,1,&value))return;
 					}
 					filename[i]=(char)0;
-					
-				/*OpenFile *executable = fileSystem->Open(filename);
-				AddrSpace *space;
-				space = new AddrSpace(executable);
-				Thread * t = new Thread(filename);
-				t->space = space;
-				int processId = t->getId(); /* create this function by yourself */ 
+					printf("File %s has been found\n", filename);
+					SExec(filename);
 				
 		}
         break;
@@ -179,10 +175,11 @@ ExceptionHandler(ExceptionType which)
             break;
 
         case SC_Yield:
-
+        	printf("Process %d is Yielding\n", currentThread->threadId);
+			currentThread->Yield();
             break;
         case SC_Exit:
-				SExit(0);
+				SExit(arg1);
             break;
             
 			default :
@@ -293,9 +290,26 @@ static void SWrite(char *buffer, int size, int id)
 	WriteFile(id,buffer,size);
 }
 
-static void SExec()
+static void SExec(char* filename)
 {
-	printf("Running");
+	OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+	printf("Unable to open file %s\n", filename);
+	return;
+    }
+    space = new AddrSpace(executable);  
+    
+    //Make a new thread for the process and give it the space.
+    Thread * t = new Thread("Exec-ed Thread");
+    t->space = space; 
+    
+    int processId = t->getId();
+    printf("Process %d finishes the exec() system call\n", currentThread->threadId);
+
+    delete executable;			// close file
+    t->Fork(processCreator,0);
 
 }
 
@@ -308,13 +322,17 @@ static void SExit(int status)
 	}
 	//TODO check if current thread's parent is asleep.
 	//If so, wake them up.
-	if(status == 0){
-		printf("\nExited normally.\n\n");
-	}
-	if(status == 1){
-		printf("\nExited abnormally.\n\n");
-	}
 	
+	if(status == 0){
+		printf("Exited normally (Code 0).\n");
+	}
+	else if(status == 1){
+		printf("Exited abnormally (Code 1).\n");
+	}
+	else
+		printf("Exited with code %d.\n", status);
+		
+	delete (currentThread->space);	
 	currentThread->Finish();
 }
 

@@ -24,6 +24,8 @@
 #include "threadtest.h"
 #endif
 
+enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the 
@@ -72,7 +74,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     	SwapHeader(&noffH);
     ASSERT(noffH.noffMagic == NOFFMAGIC);
 
-// how big is address space?
+	// how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
 			+ UserStackSize;	// we need to increase the size
 						// to leave room for the stack
@@ -83,16 +85,49 @@ AddrSpace::AddrSpace(OpenFile *executable)
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
+	
+	offset = 0; // An offset for physical memory page
+	
+	
+	/*if (EvaluateInput(memAllocation) != INT) {
+		printf("***Error, improper input for -M command found\n");
+		currentThread->Finish();
+	}*/
+	
+	if(atoi(memAllocation) == 1)
+    	offset = FirstFit();
+    else if(atoi(memAllocation) == 2)
+    	offset = BestFit();
+    else if(atoi(memAllocation) == 3)
+    	offset = WorstFit();
+    else
+    {
+		printf("***Error, improper input for -M command found\n");
+		currentThread->Finish();
+	}
+	
+	printf("Process %d is loading.\n", currentThread->threadId);
+	
+	printf("Need %d memory frames \n", numPages);
+    printf("Memory Before Allocation\n");
+    bitmap->Print();
+    	
 	// Mark the bitmap for every page taken up.
 	if(numPages < bitmap->MaxSpace())  // Make sure there are enough clear pages to fit
 	{
-		for (int i = 0; i < numPages; i++)
-    		bitmap->Mark(i);
+		for (int j = offset; j < offset + numPages; j++)
+    		bitmap->Mark(j);
 	}
-	else
-		printf("Not enough space to run program.");
+	else {
+		printf("Not enough space to run process.\n");
+		printf("Exiting this process\n");
+		// If there isn't enough space, just finish the thread
+		currentThread->Finish();
+	}
+		
+		
+		
 	
-	bitmap->Print();
 	
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
@@ -100,7 +135,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
+	pageTable[i].physicalPage = i + offset;
 	pageTable[i].valid = TRUE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
@@ -112,39 +147,24 @@ AddrSpace::AddrSpace(OpenFile *executable)
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
     bzero(machine->mainMemory, size);
+    printf("Zeroing out the address space and stack\n");
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
+        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (offset * PageSize)]),
 			noffH.code.size, noffH.code.inFileAddr);
     }
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
+        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (offset * PageSize)]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
     
-    if(atoi(memAllocation) == 1)
-    	FirstFit();
-    else if(atoi(memAllocation) == 2)
-    	BestFit();
-    else if(atoi(memAllocation) == 3)
-    	WorstFit();
-    else
-    {
-		printf("***Error, improper input for -M command found\n");
-		currentThread->Finish();
-	}
+    printf("Memory allocation succeeds\n");
 
-    
-    
-    printf("Need %d memory frames \n", numPages);
-    printf("Memory Before Allocation\n");
-    bitmap->Print();
-    
     printf("Memory After Allocation\n");
     bitmap->Print();
 }
@@ -156,7 +176,16 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 AddrSpace::~AddrSpace()
 {
-   delete pageTable;
+	printf("Memory Before Deallocation\n");
+    bitmap->Print();
+
+	for (int j = offset; j < offset + numPages; j++)
+    	bitmap->Clear(j);
+    	
+	printf("Memory After Deallocation\n");
+    bitmap->Print();
+    
+    delete pageTable;
 }
 
 //----------------------------------------------------------------------
@@ -216,20 +245,69 @@ void AddrSpace::RestoreState()
     machine->pageTableSize = numPages;
 }
 
-void AddrSpace::FirstFit()
+int AddrSpace::FirstFit()
 {
 	printf("First-fit algorithm is selected for memory allocation\n");
-
+	//Need to find the first block of numPages space
+	int startPoint = 0;
+	int count = 0;
+	
+	for(int i = 0; i < bitmap->getNumBits(); i++){
+		if(bitmap->Test(i)){
+			startPoint = i+1;
+			count = 0;	
+			}	
+		else{
+			count++;
+			if(count == numPages)
+				return startPoint;
+		}
+	}
+	
+	return startPoint;
 }
 
-void AddrSpace::BestFit()
+int AddrSpace::BestFit()
 {
 	printf("Best-fit algorithm is selected for memory allocation\n");
-
+	int startPoint = 0;
+	int count = 0;
+	int smallestCount = bitmap->getNumBits();
+	
+	for(int i = 0; i < bitmap->getNumBits(); i++){
+		if(bitmap->Test(i) || i == bitmap->getNumBits() - 1){
+			if(count < smallestCount && count >= numPages){
+				startPoint = i - count;	
+				smallestCount = i - startPoint;	
+			}
+			count = 0;	
+			}	
+		else{
+			count++;
+		}
+	}
+	return startPoint;
 }
 
-void AddrSpace::WorstFit()
+int AddrSpace::WorstFit()
 {
 	printf("Worst-fit algorithm is selected for memory allocation\n");
+	int startPoint = 0;
+	int count = 0;
+	int largestCount = 0;
+	
+	for(int i = 0; i < bitmap->getNumBits(); i++){
+		if(bitmap->Test(i) || i == bitmap->getNumBits() - 1){
+			if(count > largestCount && count >= numPages){
+				startPoint = i - count;	
+				largestCount = i - startPoint;	
+			}
+			count = 0;	
+			}	
+		else{
+			count++;
+		}
+	}
+	return startPoint;
 
 }

@@ -53,6 +53,8 @@ class BitMap {
     void WriteBack(OpenFile *file); 	// write contents to disk
 
 	int MaxSpace();
+	
+	int getNumBits(){return numBits;}
 
   private:
     int numBits;			// number of bits in the bitmap

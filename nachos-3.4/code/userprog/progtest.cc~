@@ -36,7 +36,7 @@ StartProcess(char *filename)
     Thread * t = new Thread("Exec-ed Thread");
     t->space = space; 
     
-    int processId = t->getID();
+    int processId = t->getId();
 
     delete executable;			// close file
 
