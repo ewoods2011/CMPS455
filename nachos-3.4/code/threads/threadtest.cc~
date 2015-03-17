@@ -37,6 +37,8 @@ Semaphore **boxOffice;
 bool **postOffice;
 bool hasMail = false;
 
+List *threadsList;
+
 
 //----------------------------------------------------------------------
 // InputType
@@ -211,7 +213,9 @@ ThreadTest()
 	else if (atoi(taskToDo) == 6)
 		task56Input(6);
     else {
-    	printf("***Error, improper input or no -A command found\n");
+    	//printf("***Error, improper input or no -A command found\n");
+    	threadsList = new List();
+    	threadsList.
     	currentThread->Finish();
     }
 }
@@ -291,7 +295,7 @@ ValidateInput(int threadNum)
 //-------------------------------------------------------------
 //-------------------EVALUATE INPUT----------------------------
 //-------------------------------------------------------------
-static InputType EvaluateInput(char * input) {
+InputType EvaluateInput(char * input) {
 	//Bool types to check possibilities
 	bool maybeDecimal = false;
 	bool maybeNegative = false;

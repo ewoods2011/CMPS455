@@ -1,3 +1,4 @@
+#include <syscall.h>
 int main(){
 	Exec("../test/test7");
 	Yield();

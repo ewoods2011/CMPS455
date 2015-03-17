@@ -95,7 +95,9 @@ Machine::ReadMem(int addr, int size, int *value)
     
     exception = Translate(addr, &physicalAddress, size, FALSE);
     if (exception != NoException) {
+    	printf("\nStarting to raise Exception\n");
 		machine->RaiseException(exception, addr);
+    	printf("\ninished to raise Exception\n");
 		return FALSE;
     }
     switch (size) {

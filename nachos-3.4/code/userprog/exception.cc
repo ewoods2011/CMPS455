@@ -32,7 +32,7 @@
 
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
-static void SExec(char* filename);
+static int SExec(char* filename);
 static void SExit(int status);
 void processCreator(int arg);
 
@@ -61,6 +61,8 @@ void processCreator(int arg);
 //	are in machine.h.
 //----------------------------------------------------------------------
 
+//Find what calls exception handler, see what gets raised.
+
 void
 ExceptionHandler(ExceptionType which)
 {
@@ -85,7 +87,9 @@ ExceptionHandler(ExceptionType which)
 		machine->registers[PrevPCReg] = machine->registers[PCReg];
 		machine->registers[PCReg] = machine->registers[NextPCReg];
 		machine->registers[NextPCReg] = machine->registers[NextPCReg] + 4;
-
+		
+		//printf("Syscall Type is: %d \n", type);
+		
 		switch ( type )
 		{
 
@@ -134,14 +138,14 @@ ExceptionHandler(ExceptionType which)
 				/* return the process id for the newly created process, return value
 				is to write at R2 */
 				
-				//machine->WriteRegister(2, processed);
+				
 				
 				printf("Process %d calls exec() system call\n", currentThread->threadId);
 
 				/* routine task – do at last -- generally manipulate PCReg,
 				PrevPCReg, NextPCReg so that they point to proper place*/
 				int pc;
-				
+				/*
     			IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts				 			
 				pc=machine->ReadRegister(PCReg);
 				machine->WriteRegister(PrevPCReg,pc);
@@ -151,14 +155,18 @@ ExceptionHandler(ExceptionType which)
 				machine->WriteRegister(NextPCReg,pc);
 				
 				(void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
-				
+				*/
 				int fileAddr = machine->ReadRegister(4);		//Read register 4 to get address of filename
 				char *filename = new char[100]; 
+				
+				printf("FILEADDR: %d\n", fileAddr);
+				printf("VALUE: %d\n", machine->ReadMem(fileAddr,1,&value));
 				
 				if(!machine->ReadMem(fileAddr,1,&value))return;
 					i=0;
 					while( value!=0 )
 					{
+						printf("Getting file name\n");
 						filename[i]=(char)value;
 						fileAddr+=1;
 						i++;
@@ -166,16 +174,28 @@ ExceptionHandler(ExceptionType which)
 					}
 					filename[i]=(char)0;
 					printf("File %s has been found\n", filename);
-					SExec(filename);
+					int processId = SExec(filename);
 				
+				//Try some shit
+				
+				delete [] filename;
+				
+				printf("ProcessID: %d\n", processId);
+				machine->WriteRegister(2, processId);
+				printf("Reg 2: %d\n", machine->ReadRegister(2));
+				break;
 		}
-        break;
+        //break;
         case SC_Join:
+        	printf("Process %d joining on child.\n", currentThread->threadId);
+        	//printf("%d", arg1);
+        	//Create a new thread 
 
             break;
 
         case SC_Yield:
         	printf("Process %d is Yielding\n", currentThread->threadId);
+        	//machine->WriteRegister(2, 0);
 			currentThread->Yield();
             break;
         case SC_Exit:
@@ -290,27 +310,27 @@ static void SWrite(char *buffer, int size, int id)
 	WriteFile(id,buffer,size);
 }
 
-static void SExec(char* filename)
+static int SExec(char* filename)
 {
 	OpenFile *executable = fileSystem->Open(filename);
     AddrSpace *space;
 
     if (executable == NULL) {
-	printf("Unable to open file %s\n", filename);
-	return;
+		printf("Unable to open file %s\n", filename);
+		return -1;
     }
     space = new AddrSpace(executable);  
     
     //Make a new thread for the process and give it the space.
     Thread * t = new Thread("Exec-ed Thread");
     t->space = space; 
-    
     int processId = t->getId();
     printf("Process %d finishes the exec() system call\n", currentThread->threadId);
 
     delete executable;			// close file
     t->Fork(processCreator,0);
-
+    
+    return processId;
 }
 
 static void SExit(int status)
@@ -325,12 +345,15 @@ static void SExit(int status)
 	
 	if(status == 0){
 		printf("Exited normally (Code 0).\n");
+		machine->WriteRegister(2, 0);
 	}
 	else if(status == 1){
 		printf("Exited abnormally (Code 1).\n");
+		machine->WriteRegister(2, 1);
 	}
 	else
 		printf("Exited with code %d.\n", status);
+		machine->WriteRegister(2, status);
 		
 	delete (currentThread->space);	
 	currentThread->Finish();

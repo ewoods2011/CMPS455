@@ -94,7 +94,7 @@ void
 Machine::OneInstruction(Instruction *instr)
 {
 	
-	printf("\nONE INSTRUCTION: OP CODE - %d\n", instr->opCode);
+	//printf("\nONE INSTRUCTION: OP CODE - %d\n", instr->opCode);
 
     int raw;
     int nextLoadReg = 0; 	

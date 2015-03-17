@@ -24,6 +24,8 @@
 #include "threadtest.h"
 #endif
 
+#define FORLOOP 1
+
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
 
 //----------------------------------------------------------------------
@@ -67,7 +69,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
     unsigned int i, size;
-
+	
+	int codePages, initPages;
+	
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
 		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
@@ -79,6 +83,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 			+ UserStackSize;	// we need to increase the size
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
+    codePages = divRoundUp(noffH.code.size, PageSize);
+    initPages = divRoundUp(noffH.initData.size, PageSize);
     size = numPages * PageSize;
 
     ASSERT(numPages <= NumPhysPages);		// check we're not trying
@@ -93,6 +99,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		printf("***Error, improper input for -M command found\n");
 		currentThread->Finish();
 	}*/
+	//bitmap->Mark(3);
 	
 	if(atoi(memAllocation) == 1)
     	offset = FirstFit();
@@ -108,12 +115,12 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	
 	printf("Process %d is loading.\n", currentThread->threadId);
 	
-	printf("Need %d memory frames \n", numPages);
-    printf("Memory Before Allocation\n");
+	printf("Process %d needs %d memory frames \n", currentThread->threadId, numPages);
+    printf("Process %d's Memory Before Allocation\n", currentThread->threadId);
     bitmap->Print();
     	
 	// Mark the bitmap for every page taken up.
-	if(numPages < bitmap->MaxSpace())  // Make sure there are enough clear pages to fit
+	if(numPages <= bitmap->MaxSpace())  // Make sure there are enough clear pages to fit
 	{
 		for (int j = offset; j < offset + numPages; j++)
     		bitmap->Mark(j);
@@ -146,26 +153,63 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
-    bzero(machine->mainMemory, size);
-    printf("Zeroing out the address space and stack\n");
+// TODO LOOK UP MEMSET(address, size, 0)
+    memset(machine->mainMemory, 0, size);
+    printf("Process %d zeroing out the address space and stack\n", currentThread->getId());
 
+	//Read in page by page into main memory instaed of the entirety of the size
 // then, copy in the code and data segments into memory
-    if (noffH.code.size > 0) {
-        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
-			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (offset * PageSize)]),
-			noffH.code.size, noffH.code.inFileAddr);
+	printf("Process %d, copies the code and data into memory\n", currentThread->getId());
+
+
+#ifdef OLDSTUPIDWAY
+	if (noffH.code.size > 0) {
+		executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (offset * PageSize)]),
+				noffH.code.size, noffH.code.inFileAddr);
+	}
+	
+	if (noffH.initData.size > 0) {
+		executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (offset * PageSize)]),
+				noffH.initData.size, noffH.code.inFileAddr);
+	}
+#endif
+	
+#ifdef FORLOOP
+	//printf("\nPAGE SIZE: %d\n\n", PageSize);
+	//printf("\nCODE PAGES: %d\n\n", codePages);
+	printf("\nOFFSET: %d", offset);
+	for (int j = 0; j < codePages; j++) {
+	    if (noffH.code.size > 0) {
+    	    DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+				noffH.code.virtualAddr, noffH.code.size);
+				
+				
+        	executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (offset * PageSize) + (j * PageSize) ]),
+				PageSize, noffH.code.inFileAddr );
+				
+				
+			//printf("\nINDEX: %d\n\n", noffH.code.virtualAddr + (offset) + (j * PageSize));
+			//printf("\nMainMemory: %s\n\n", &(machine->mainMemory[noffH.code.virtualAddr + (offset * PageSize)]));
+			//printf("\nNOFF CODE ADDR: %d\n\n", noffH.code.inFileAddr);
+    	}
     }
+    
+    //printf("\nINIT PAGES: %d\n\n", initPages);
+    for (int j = 0; j < initPages; j++) { 
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (offset * PageSize)]),
-			noffH.initData.size, noffH.initData.inFileAddr);
+			
+        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (offset * PageSize) + (j * PageSize)]),
+			PageSize, noffH.initData.inFileAddr;
+			
+		//printf("\nNOFF INIT ADDR: %d\n\n", noffH.initData.inFileAddr);
     }
-    
-    printf("Memory allocation succeeds\n");
+    }
+#endif
+    printf("Process %d Memory allocation succeeds!\n", currentThread->getId());
 
-    printf("Memory After Allocation\n");
+    printf("Process %d Memory After Allocation\n", currentThread->getId());
     bitmap->Print();
 }
 

@@ -1,3 +1,5 @@
-		int main(){
-			Exit(1);
-		}
+#include <syscall.h>
+
+int main(){
+	Exit(0);
+}
