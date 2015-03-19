@@ -84,6 +84,7 @@ ExceptionHandler(ExceptionType which)
 
 		// for debugging, in case we are jumping into lala-land
 		// Advance program counters.
+		
 		machine->registers[PrevPCReg] = machine->registers[PCReg];
 		machine->registers[PCReg] = machine->registers[NextPCReg];
 		machine->registers[NextPCReg] = machine->registers[NextPCReg] + 4;
@@ -93,12 +94,28 @@ ExceptionHandler(ExceptionType which)
 		switch ( type )
 		{
 
-		case SC_Halt :
+		case SC_Halt :{
 			DEBUG('t', "Shutdown, initiated by user program.\n");
 			printf("HALTING\n");
+			
+			/*Thread * t1 = new Thread("D");
+			PCB->Append(t1);
+			t1 = new Thread("N");
+			PCB->Append(t1);
+			t1 = new Thread("Q");
+			PCB->Append(t1);
+			t1 = new Thread("U");
+			PCB->Append(t1);
+			Thread * newT = PCB->GetThreadAt(2);
+			printf("\n\nTHREAD: %d, %s\n\n", newT->getId(), newT->getName());
+			newT->numberOfChildren++;
+			
+			Thread * newt = PCB->GetThreadAt(2);
+			printf("\n\nTHREAD: %d, %s\n\n", newt->numberOfChildren, newt->getName());*/
+			
 			interrupt->Halt();
 			break;
-
+}
 			
 		case SC_Read :
 			if (arg2 <= 0 || arg3 < 0){
@@ -122,7 +139,7 @@ ExceptionHandler(ExceptionType which)
 			}
 			if (j == 0){
 				printf("\nWrite 0 byte.\n");
-				// SExit(1);
+				 SExit(1);
 			} else {
 				DEBUG('t', "\nWrite %d bytes from %s to the open file(OpenFileId is %d).", arg2, ch, arg3);
 				SWrite(ch, j, arg3);
@@ -140,7 +157,7 @@ ExceptionHandler(ExceptionType which)
 				
 				
 				
-				printf("Process %d calls exec() system call\n", currentThread->threadId);
+				printf("Process %d calls exec() system call\n", currentThread->getId());
 
 				/* routine task – do at last -- generally manipulate PCReg,
 				PrevPCReg, NextPCReg so that they point to proper place*/
@@ -156,46 +173,70 @@ ExceptionHandler(ExceptionType which)
 				
 				(void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
 				*/
-				int fileAddr = machine->ReadRegister(4);		//Read register 4 to get address of filename
+				int fileAddr = arg1;		//Read register 4 to get address of filename
 				char *filename = new char[100]; 
 				
-				printf("FILEADDR: %d\n", fileAddr);
-				printf("VALUE: %d\n", machine->ReadMem(fileAddr,1,&value))
+				//printf("FILEADDR: %d\n", fileAddr);
+				//printf("VALUE: %d\n", machine->ReadMem(fileAddr,1,&value));
 				
-				if(!machine->ReadMem(fileAddr,1,&value))return;
-					i=0;
-					while( value!=0 )
-					{
-						printf("Getting file name\n");
-						filename[i]=(char)value;
-						fileAddr+=1;
-						i++;
-						if(!machine->ReadMem(fileAddr,1,&value))return;
+				if(!machine->ReadMem(fileAddr,1,&value)) {
+					machine->WriteRegister(2, 0);
+					return;
+				} 
+					
+				i=0;
+				while( value!=0 )
+				{
+					//printf("Getting file name\n");
+					filename[i]=(char)value;
+					fileAddr+=1;
+					i++;
+					if(!machine->ReadMem(fileAddr,1,&value)) {
+						machine->WriteRegister(2, 0);
+						return;
 					}
-					filename[i]=(char)0;
-					printf("File %s has been found\n", filename);
-					int processId = SExec(filename);
+					//printf("\nCharacter:%c\n", (char)value); 
+				}
+				filename[i]=(char)0;
+				printf("File %s has been found\n", filename);
+				int processId = SExec(filename);
 				
 				//Try some shit
 				
 				delete [] filename;
 				
-				printf("ProcessID: %d\n", processId);
+				//printf("ProcessID: %d\n", processId);
 				machine->WriteRegister(2, processId);
-				printf("Reg 2: %d\n", machine->ReadRegister(2));
+				//printf("Reg 2: %d\n", machine->ReadRegister(2));
 				break;
 		}
         //break;
         case SC_Join:
-        	printf("Process %d joining on child.\n", currentThread->threadId);
-        	//printf("%d", arg1);
-        	//Create a new thread 
-
+        {
+        	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts		
+        	printf("Process %d joining on process.\n", currentThread->getId(), arg1);
+        	//printf("%d\n", arg1);
+			
+			//arg1 will be the threadId for the exec'd function.
+			//Current thread will become the parent
+			//We need a child thread to be the alias of the actual thread
+			//Set off interrupts so this is atomic
+			Thread *child = PCB->GetThreadAt(arg1-1);
+			
+			child->parent = currentThread;
+			currentThread->numberOfChildren++;
+			child->isAChild = true;
+			
+			//Go to sleep until the child wakes it up
+			currentThread->SaveUserState();
+			currentThread->Sleep();
+			
+			(void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
             break;
-
+		}
         case SC_Yield:
-        	printf("Process %d is Yielding\n", currentThread->threadId);
-        	//machine->WriteRegister(2, 0);
+        	printf("Process %d is Yielding\n", currentThread->getId());
+        	machine->WriteRegister(2, 0);
 			currentThread->Yield();
             break;
         case SC_Exit:
@@ -248,10 +289,10 @@ ExceptionHandler(ExceptionType which)
 		break;
 
 		default :
-		//      printf("Unexpected user mode exception %d %d\n", which, type);
-		//      if (currentThread->getName() == "main")
-		//      ASSERT(FALSE);
-		//      SExit(1);
+		      //printf("Unexpected user mode exception %d %d\n", which, type);
+		     // if (currentThread->getName() == "main")
+		     // ASSERT(FALSE);
+		     // SExit(1);
 		break;
 	}
 	delete [] ch;
@@ -319,13 +360,16 @@ static int SExec(char* filename)
 		printf("Unable to open file %s\n", filename);
 		return -1;
     }
+    Thread * t = new Thread("Exec-ed Thread");
     space = new AddrSpace(executable);  
     
     //Make a new thread for the process and give it the space.
-    Thread * t = new Thread("Exec-ed Thread");
     t->space = space; 
     int processId = t->getId();
-    printf("Process %d finishes the exec() system call\n", currentThread->threadId);
+    printf("Process %d finishes the exec() system call\n", processId);
+
+	//Add the execed thread to the PCB
+	PCB->Append(t);
 
     delete executable;			// close file
     t->Fork(processCreator,0);
@@ -336,10 +380,20 @@ static int SExec(char* filename)
 static void SExit(int status)
 {
 
+	//Check if we have a parent, wake it up.
 	if(currentThread->parent != NULL){
 		Thread *parent = currentThread->parent;
+		parent->numberOfChildren--;
 		parent->RestoreUserState();
+		scheduler->ReadyToRun(parent);	
 	}
+
+	//Call sever ties.  Will search the PCB to find threads with this as its parent, and set its parent to NULL
+	if(currentThread->numberOfChildren > 0){
+	printf("Thread %s with number children: %d \n",currentThread->getName(), currentThread->numberOfChildren);
+		PCB->SeverTies(currentThread->getId());
+	}
+
 	//TODO check if current thread's parent is asleep.
 	//If so, wake them up.
 	
@@ -355,7 +409,8 @@ static void SExit(int status)
 		printf("Exited with code %d.\n", status);
 		machine->WriteRegister(2, status);
 		
-	delete (currentThread->space);	
+	delete (currentThread->space);
+	PCB->RemoveThread(currentThread->getId());
 	currentThread->Finish();
 }
 

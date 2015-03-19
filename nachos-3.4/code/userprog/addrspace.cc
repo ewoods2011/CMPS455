@@ -27,6 +27,11 @@
 #define FORLOOP 1
 
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
+InputType EvaluateInput(char * input);
+bool IsChar(char a);
+
+
+
 
 //----------------------------------------------------------------------
 // SwapHeader
@@ -95,10 +100,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	offset = 0; // An offset for physical memory page
 	
 	
-	/*if (EvaluateInput(memAllocation) != INT) {
+	if (EvaluateInput(memAllocation) != INT) {
 		printf("***Error, improper input for -M command found\n");
 		currentThread->Finish();
-	}*/
+	}
 	//bitmap->Mark(3);
 	
 	if(atoi(memAllocation) == 1)
@@ -113,10 +118,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		currentThread->Finish();
 	}
 	
-	printf("Process %d is loading.\n", currentThread->threadId);
+	printf("Process %d is loading.\n", currentThread->getId());
 	
-	printf("Process %d needs %d memory frames \n", currentThread->threadId, numPages);
-    printf("Process %d's Memory Before Allocation\n", currentThread->threadId);
+	printf("Process %d needs %d memory frames \n", currentThread->getId(), numPages);
+    printf("Process %d's Memory Before Allocation\n", currentThread->getId());
     bitmap->Print();
     	
 	// Mark the bitmap for every page taken up.
@@ -154,14 +159,30 @@ AddrSpace::AddrSpace(OpenFile *executable)
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
 // TODO LOOK UP MEMSET(address, size, 0)
-    memset(machine->mainMemory, 0, size);
+
+    memset(machine->mainMemory + offset * PageSize, 0, size);
+    
+
     printf("Process %d zeroing out the address space and stack\n", currentThread->getId());
 
 	//Read in page by page into main memory instaed of the entirety of the size
 // then, copy in the code and data segments into memory
 	printf("Process %d, copies the code and data into memory\n", currentThread->getId());
 
-
+#ifdef ORIGINALWAY
+	if (noffH.code.size > 0) {
+    	    DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+				noffH.code.virtualAddr, noffH.code.size);
+        	executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
+				noffH.code.size, noffH.code.inFileAddr);
+	    }
+    	if (noffH.initData.size > 0) {
+    	    DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
+				noffH.initData.virtualAddr, noffH.initData.size);
+    	    executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
+				noffH.initData.size, noffH.initData.inFileAddr);
+    	}
+#endif
 #ifdef OLDSTUPIDWAY
 	if (noffH.code.size > 0) {
 		executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (offset * PageSize)]),
@@ -177,7 +198,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 #ifdef FORLOOP
 	//printf("\nPAGE SIZE: %d\n\n", PageSize);
 	//printf("\nCODE PAGES: %d\n\n", codePages);
-	printf("\nOFFSET: %d", offset);
+
 	for (int j = 0; j < codePages; j++) {
 	    if (noffH.code.size > 0) {
     	    DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
@@ -209,8 +230,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
 #endif
     printf("Process %d Memory allocation succeeds!\n", currentThread->getId());
 
+	
     printf("Process %d Memory After Allocation\n", currentThread->getId());
     bitmap->Print();
+
 }
 
 //----------------------------------------------------------------------
@@ -355,3 +378,4 @@ int AddrSpace::WorstFit()
 	return startPoint;
 
 }
+
