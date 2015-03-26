@@ -168,19 +168,33 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 void
 AddrSpace::Paging()
 {
+	//Set the current page in the page table to valid
 	pageTable[pageToInit].valid = TRUE;
 
-    if (noffH.code.size > 0) {
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize)]),
-			PageSize, noffH.code.inFileAddr);
-    }
-    
-    if (noffH.initData.size > 0) {
+	//Trying to figure out how to maths
+	printf("Code VirtualAddr: %i\n",noffH.code.virtualAddr);
+	printf("StartPage: %i\n",startPage);
+	printf("PageToInit: %i\n",pageToInit);
+	printf("Size: %i\n", PageSize);
+	printf("Position: %i\n", noffH.code.inFileAddr + ( pageToInit * PageSize));
+	printf("Index: %i\n", noffH.code.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize));
 
+	//Copy the code segments for the current page into memory
+    if (noffH.code.size > 0) {
+		
+        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize)]),
+			PageSize, noffH.code.inFileAddr + ( pageToInit * PageSize));
+		
+    } 
+	
+	//Copy the data segments for the current page into memory
+    if (noffH.initData.size > 0) {
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize)]),
-			PageSize, noffH.initData.inFileAddr);
+			PageSize, noffH.initData.inFileAddr + ( pageToInit * PageSize));
     }
+	
     
+	//Increase the page count
 	pageToInit++;
 
 }

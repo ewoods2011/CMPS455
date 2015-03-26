@@ -191,6 +191,10 @@ ExceptionHandler(ExceptionType which)
 					delete filename;
 					break;
 				}
+				else
+				{
+					printf("Opening file: %s\n", filename);
+				}
 				delete filename;
 
 				// Calculate needed memory space
@@ -327,8 +331,10 @@ ExceptionHandler(ExceptionType which)
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case PageFaultException :
+		//If there is a Page Fault, Display the error, and try to load in the page
 		printf("ERROR: PageFaultException, called by thread %i.\n",currentThread->getID());
-		currentThread->space->Paging();
+		currentThread->space->Paging();	//Load in the page that caused the page fault
+
 		//if (currentThread->getName() == "main")
 		//	ASSERT(FALSE);  //Not the way of handling an exception.
 		//if(currentThread->space)	// Delete the used memory from the process.
