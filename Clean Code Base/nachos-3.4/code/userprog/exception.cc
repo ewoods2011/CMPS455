@@ -34,6 +34,7 @@
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread * getID(int toGet);
+OpenFile *executable;
 
 // end FA98
 
@@ -90,9 +91,9 @@ void processCreator(int arg)	// Used when a process first actually runs, not whe
 		delete threadToBeDestroyed;
 		threadToBeDestroyed = NULL;
 	}
-
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
+    delete executable;
  }
 
 void
@@ -182,8 +183,8 @@ ExceptionHandler(ExceptionType which)
 					if(!machine->ReadMem(fileAddress,1,&j))return;
 				}
 				// Open File
-				OpenFile *executable = fileSystem->Open(filename);
-				
+				executable = fileSystem->Open(filename);
+
 				if (executable == NULL) 
 				{
 					printf("Unable to open file %s\n", filename);
@@ -195,7 +196,6 @@ ExceptionHandler(ExceptionType which)
 				// Calculate needed memory space
 				AddrSpace *space;
 				space = new AddrSpace(executable);
-				delete executable;
 				// Do we have enough space?
 				if(!currentThread->killNewChild)	// If so...
 				{
@@ -206,6 +206,7 @@ ExceptionHandler(ExceptionType which)
 					machine->WriteRegister(2, threadID);	// Return the thread ID as our Exec return variable.
 					threadID++;	// Increment the total number of threads.
 					execThread->Fork(processCreator, 0);	// Fork it.
+
 				}
 				else	// If not...
 				{
@@ -252,6 +253,8 @@ ExceptionHandler(ExceptionType which)
 				
 				if(currentThread->space)	// Delete the used memory from the process.
 					delete currentThread->space;
+					
+				delete executable;			//Close the file
 				currentThread->Finish();	// Delete the thread.
 
 				break;
@@ -323,7 +326,16 @@ ExceptionHandler(ExceptionType which)
 			delete currentThread->space;
 		currentThread->Finish();	// Delete the thread.
 		break;
-
+	case PageFaultException :
+		printf("ERROR: PageFaultException, called by thread %i.\n",currentThread->getID());
+		currentThread->space->Paging();
+		//if (currentThread->getName() == "main")
+		//	ASSERT(FALSE);  //Not the way of handling an exception.
+		//if(currentThread->space)	// Delete the used memory from the process.
+		//	delete currentThread->space;
+		//currentThread->Finish();	// Delete the thread.
+		break;
+		
 		default :
 		//      printf("Unexpected user mode exception %d %d\n", which, type);
 		//      if (currentThread->getName() == "main")

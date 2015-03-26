@@ -20,6 +20,9 @@
 #include "addrspace.h"
 #include "noff.h"
 
+    NoffHeader noffH;
+    unsigned int i, size, pAddr, counter;
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the 
@@ -57,11 +60,12 @@ SwapHeader (NoffHeader *noffH)
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 
-AddrSpace::AddrSpace(OpenFile *executable)
+AddrSpace::AddrSpace(OpenFile *theExecutable)
 {
-    NoffHeader noffH;
-    unsigned int i, size, pAddr, counter;
+
 	space = false;
+	pageToInit = 0;
+	executable = theExecutable;
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -118,7 +122,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 		//pageTable[i].physicalPage = i;	//Replace with pageTable[i].physicalPage = i + startPage;
 		pageTable[i].physicalPage = i + startPage;
-		pageTable[i].valid = TRUE;
+		pageTable[i].valid = FALSE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
@@ -142,7 +146,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	pAddr = startPage * PageSize;
 	
     memset(machine->mainMemory + pAddr, 0, size);
-
+    //Paging();
+/*
 // then, copy in the code and data segments into memory
 //Change these too since they assume virtual page = physical page
 	  //Fix this by adding startPage times page size as an offset
@@ -158,6 +163,25 @@ AddrSpace::AddrSpace(OpenFile *executable)
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + pAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
+*/
+}
+void
+AddrSpace::Paging()
+{
+	pageTable[pageToInit].valid = TRUE;
+
+    if (noffH.code.size > 0) {
+        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize)]),
+			PageSize, noffH.code.inFileAddr);
+    }
+    
+    if (noffH.initData.size > 0) {
+
+        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize)]),
+			PageSize, noffH.initData.inFileAddr);
+    }
+    
+	pageToInit++;
 
 }
 

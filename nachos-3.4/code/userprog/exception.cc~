@@ -289,10 +289,10 @@ ExceptionHandler(ExceptionType which)
 		break;
 
 		default :
-		      //printf("Unexpected user mode exception %d %d\n", which, type);
-		     // if (currentThread->getName() == "main")
-		     // ASSERT(FALSE);
-		     // SExit(1);
+		      printf("Unexpected user mode exception %d %d\n", which, type);
+		      if (currentThread->getName() == "main")
+		      ASSERT(FALSE);
+		      SExit(1);
 		break;
 	}
 	delete [] ch;
@@ -418,6 +418,10 @@ void processCreator(int arg)
 {
 	currentThread->space->InitRegisters();
 	currentThread->space->RestoreState(); 	// load page table register
+		if (threadToBeDestroyed != NULL){
+		delete threadToBeDestroyed;
+		threadToBeDestroyed = NULL;
+	}
 	machine->Run(); 	// jump to the user progam
 	ASSERT(FALSE); 		// machine->Run never returns;
 }

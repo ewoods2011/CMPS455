@@ -43,7 +43,6 @@ StartProcess(char *filename)
     space = new AddrSpace(executable);    
     currentThread->space = space;
 
-    delete executable;			// close file
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
@@ -52,6 +51,7 @@ StartProcess(char *filename)
     ASSERT(FALSE);			// machine->Run never returns;
 					// the address space exits
 					// by doing the syscall "exit"
+	delete executable;		//close the file
 }
 
 // Data structures needed for the console test.  Threads making

@@ -24,7 +24,7 @@
 #include "threadtest.h"
 #endif
 
-#define ORIGINALWAY 1
+
 
 enum InputType {INT, DEC, CHAR, NEGDEC, NEGINT, UNEXPECTED};
 InputType EvaluateInput(char * input);
@@ -73,7 +73,8 @@ SwapHeader (NoffHeader *noffH)
 AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
-    unsigned int i, size;
+    unsigned int i, size, pAddr, counter;
+    bool space = false;
 	
 	int codePages, initPages;
 	
@@ -118,12 +119,28 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		currentThread->Finish();
 	}
 	
+	counter = 0;
+	for(i = 0; i < NumPhysPages && counter < numPages; i++)
+	{
+		if(!bitmap->Test(i))
+		{
+			if(counter == 0)
+				offset = i;	//startPage is a class data member
+								//Should it be public or private? (Currently private)
+			counter++;
+		}
+		else
+			counter = 0;
+	}
+	
+	DEBUG('a', "%i contiguous blocks found for %i pages\n", counter, numPages);
+	
 	printf("Process %d is loading.\n", currentThread->getId());
 	
 	printf("Process %d needs %d memory frames \n", currentThread->getId(), numPages);
     printf("Process %d's Memory Before Allocation\n", currentThread->getId());
     bitmap->Print();
-    	
+   /* 	
 	// Mark the bitmap for every page taken up.
 	if(numPages <= bitmap->MaxSpace())  // Make sure there are enough clear pages to fit
 	{
@@ -135,10 +152,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		printf("Exiting this process\n");
 		// If there isn't enough space, just finish the thread
 		currentThread->Finish();
-	}
+	}*/
 		
 		
-		
+	space = true;
 	
 	
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
@@ -154,12 +171,14 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 					// a separate page, we could set its 
 					// pages to be read-only
+	bitmap->Mark(i);
     }
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
 // TODO LOOK UP MEMSET(address, size, 0)
 
+	pAddr = offset * PageSize;
     memset(machine->mainMemory + offset * PageSize, 0, size);
     
 
@@ -168,6 +187,19 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	//Read in page by page into main memory instaed of the entirety of the size
 // then, copy in the code and data segments into memory
 	printf("Process %d, copies the code and data into memory\n", currentThread->getId());
+	
+	if (noffH.code.size > 0) {
+        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+			noffH.code.virtualAddr + (offset * PageSize), noffH.code.size);
+        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + pAddr]),
+			noffH.code.size, noffH.code.inFileAddr);
+    }
+    if (noffH.initData.size > 0) {
+        DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
+			noffH.initData.virtualAddr + (offset * PageSize), noffH.initData.size);
+        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + pAddr]),
+			noffH.initData.size, noffH.initData.inFileAddr);
+    }
 
 #ifdef ORIGINALWAY
 	if (noffH.code.size > 0) {
