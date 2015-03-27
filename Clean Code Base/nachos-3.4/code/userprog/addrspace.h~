@@ -31,7 +31,7 @@ class AddrSpace {
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
     
-    void Paging();
+    void Paging(int virtPageNum);
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
@@ -43,7 +43,7 @@ class AddrSpace {
 								
 	unsigned int pageToInit;
 	
-	OpenFile **executable;
+	OpenFile *executable;
 	bool space;		//Boolean to remember if there was enough space or not
 };
 

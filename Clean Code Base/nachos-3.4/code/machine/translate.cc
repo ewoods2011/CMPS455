@@ -216,6 +216,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	} else if (!pageTable[vpn].valid) {
 	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
 			virtAddr, pageTableSize);
+		//printf("\nVPN IS: %d\nOFFSET IS: %d\n\n", vpn, offset);
 	    return PageFaultException;
 	}
 	entry = &pageTable[vpn];
@@ -227,6 +228,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	    }
 	if (entry == NULL) {				// not found
     	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+    	    //printf("\nVPN IS: %d\nOFFSET IS: %d\n\n", vpn, offset);
     	    return PageFaultException;		// really, this is a TLB fault,
 						// the page may be in memory,
 						// but not in the TLB

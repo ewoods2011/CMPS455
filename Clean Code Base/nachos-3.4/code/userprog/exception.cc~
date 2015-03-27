@@ -93,6 +93,7 @@ void processCreator(int arg)	// Used when a process first actually runs, not whe
 	}
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
+    delete executable;
  }
 
 void
@@ -106,6 +107,7 @@ ExceptionHandler(ExceptionType which)
 	int Result;
 	int i, j;
 	char *ch = new char [500];
+	int virtPageNum; //For PageFaultException.  Gives the page number that caused the fault.
 
 	switch ( which )
 	{
@@ -189,6 +191,10 @@ ExceptionHandler(ExceptionType which)
 					printf("Unable to open file %s\n", filename);
 					delete filename;
 					break;
+				}
+				else
+				{
+					printf("Opening file: %s\n", filename);
 				}
 				delete filename;
 
@@ -326,8 +332,16 @@ ExceptionHandler(ExceptionType which)
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case PageFaultException :
+		//If there is a Page Fault, Display the error, and try to load in the page
 		printf("ERROR: PageFaultException, called by thread %i.\n",currentThread->getID());
-		currentThread->space->Paging();
+		printf("REGISTER 39 IS: %d", machine->ReadRegister(39));
+		
+		//The virtual address is given in the register 39.
+		//Read that register to determine which page needs to be init-ed
+		virtPageNum = machine->ReadRegister(39) / PageSize;
+		currentThread->space->Paging(virtPageNum);	//Load in the page that caused the page fault
+		
+
 		//if (currentThread->getName() == "main")
 		//	ASSERT(FALSE);  //Not the way of handling an exception.
 		//if(currentThread->space)	// Delete the used memory from the process.

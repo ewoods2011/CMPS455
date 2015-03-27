@@ -107,6 +107,7 @@ ExceptionHandler(ExceptionType which)
 	int Result;
 	int i, j;
 	char *ch = new char [500];
+	int virtPageNum; //For PageFaultException.  Gives the page number that caused the fault.
 
 	switch ( which )
 	{
@@ -333,7 +334,13 @@ ExceptionHandler(ExceptionType which)
 	case PageFaultException :
 		//If there is a Page Fault, Display the error, and try to load in the page
 		printf("ERROR: PageFaultException, called by thread %i.\n",currentThread->getID());
-		currentThread->space->Paging();	//Load in the page that caused the page fault
+		printf("REGISTER 39 IS: %d\n", machine->ReadRegister(39));
+		
+		//The virtual address is given in the register 39.
+		//Read that register to determine which page needs to be init-ed
+		virtPageNum = machine->ReadRegister(39) / PageSize;
+		currentThread->space->Paging(virtPageNum);	//Load in the page that caused the page fault
+		
 
 		//if (currentThread->getName() == "main")
 		//	ASSERT(FALSE);  //Not the way of handling an exception.
