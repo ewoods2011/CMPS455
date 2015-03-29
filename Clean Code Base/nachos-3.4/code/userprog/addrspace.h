@@ -45,6 +45,8 @@ class AddrSpace {
 	
 	OpenFile *executable;
 	bool space;		//Boolean to remember if there was enough space or not
+	
+	char FileName[32];
 };
 
 #endif // ADDRSPACE_H

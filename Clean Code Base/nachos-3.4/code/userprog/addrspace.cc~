@@ -22,6 +22,7 @@
 
     NoffHeader noffH;
     unsigned int i, size, pAddr, counter;
+    char FileName[32];
 
 //----------------------------------------------------------------------
 // SwapHeader
@@ -135,6 +136,53 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     }
 	
 	memMap->Print();	// Useful!
+	
+	//Create the Swap File to Write to
+	//Go to filesys/fstest.cc for more info on how to do
+	sprintf(FileName, "%s%d%s", "../SwapFiles/", currentThread->getID(),".swap");
+	
+	//If unable to create the file, let the user know
+	if (!fileSystem->Create(FileName, 0)) {
+		printf("Perf test: can't create %s\n", FileName);
+     		return;
+     	}
+     	
+     	//Some code to write "1234567890" to the file
+     	char* contents = "1234567890";
+     	int ContentSize = strlen(contents);
+     	OpenFile *openFile;
+     	int numBytes, i;
+     	
+	
+	openFile = fileSystem->Open(FileName);
+    	if (openFile == NULL) {
+		printf("Perf test: unable to open %s\n", FileName);
+		return;
+	}
+    	
+    	
+
+        numBytes = openFile->Write(contents, ContentSize);
+	if (numBytes < 10) {
+	    	printf("Perf test: unable to write %s\n", FileName);
+	    	delete openFile;
+	    	return;
+	}	
+	
+	//Read file. Not working right now.
+	/*char *buffer = new char[ContentSize];
+	numBytes = openFile->Read(buffer, ContentSize);
+	printf("Content read in %s was: %s\n", FileName, buffer);
+	
+    	delete buffer;*/
+    	delete openFile;
+     	
+     	//Delete the file when done
+     	/*int s = remove(FileName);
+     	if(s == 0)
+     		printf("%s file deleted Successfully.\n", FileName);
+     	else
+     		printf("Unable to delete the file.\n");*/
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
@@ -145,7 +193,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	
 	pAddr = startPage * PageSize;
 	
-    //memset(machine->mainMemory + pAddr, 0, size);
+    memset(machine->mainMemory + pAddr, 0, size);
     //Paging();
 /*
 // then, copy in the code and data segments into memory
@@ -165,10 +213,12 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     }
 */
 }
+
+
 void
 AddrSpace::Paging(int vpn)
 {
-	memset(machine->mainMemory + pAddr + vpn * PageSize, 0, PageSize);
+	//memset(machine->mainMemory + pAddr + vpn * PageSize, 0, PageSize);
 	//Set the current page in the page table to valid
 	pageTable[vpn].valid = TRUE;
 
