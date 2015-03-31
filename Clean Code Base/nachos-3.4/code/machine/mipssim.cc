@@ -93,6 +93,7 @@ TypeToReg(RegType reg, Instruction *instr)
 void
 Machine::OneInstruction(Instruction *instr)
 {
+	//printf("ONE INSTRUCTION: %d\n\n", instr->opCode);
     int raw;
     int nextLoadReg = 0; 	
     int nextLoadValue = 0; 	// record delayed load operation, to apply

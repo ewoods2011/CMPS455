@@ -24,6 +24,7 @@
     unsigned int i, size, pAddr, counter;
     char FileName[32];
 
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the 
@@ -85,7 +86,10 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	//instead of total amount of pages
 	//This requires a global bitmap instance
 	
+	//Don't need to find start page anymore
+	/*
 	counter = 0;
+	
 	for(i = 0; i < NumPhysPages && counter < numPages; i++)
 	{
 		if(!memMap->Test(i))
@@ -98,16 +102,20 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 		else
 			counter = 0;
 	}
+	*/
 	
 	DEBUG('a', "%i contiguous blocks found for %i pages\n", counter, numPages);
-
+	counter = 0;
+	//TODO - Insert bitmap function to see if bitmap is full
 	//If no memory available, terminate
+	/*
 	if(counter < numPages)
 	{
 		printf("Not enough contiguous memory for new process; terminating!.\n");
 		currentThread->killNewChild = true;
 		return;
 	}
+	*/
 
 	//If we get past the if statement, then there was sufficient space
 	space = true;
@@ -132,14 +140,14 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 
 		//Take the global bitmap and set the relevant chunks
 		//to indicate that the memory is in use
-		memMap->Mark(i + startPage);
+		//memMap->Mark(i + startPage);
     }
 	
 	memMap->Print();	// Useful!
 	
 	//Create the Swap File to Write to
 	//Go to filesys/fstest.cc for more info on how to do
-	sprintf(FileName, "%s%d%s", "../SwapFiles/", currentThread->getID(),".swap");
+	sprintf(FileName, "%s%d%s", "../SwapFiles/", currentThread->getID(), ".swap");
 	
 	//If unable to create the file, let the user know
 	if (!fileSystem->Create(FileName, 0)) {
@@ -150,36 +158,41 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
      	//Some code to write "1234567890" to the file
      	char* contents = "1234567890";
      	int ContentSize = strlen(contents);
-     	OpenFile *openFile;
+     	//int FileSize = ((int)(ContentSize * 5000));
      	int numBytes, i;
      	
 	
-	openFile = fileSystem->Open(FileName);
-    	if (openFile == NULL) {
+	/*swapFile = fileSystem->Open(FileName);
+    	if (swapFile == NULL) {
 		printf("Perf test: unable to open %s\n", FileName);
 		return;
 	}
     	
     	
 
-        numBytes = openFile->Write(contents, ContentSize);
+
+        numBytes = swapFile->Write(contents, ContentSize);
 	if (numBytes < 10) {
-	    	printf("Perf test: unable to write %s\n", FileName);
-	    	delete openFile;
-	    	return;
-	}	
+	    printf("Perf test: unable to write %s\n", FileName);
+	    delete swapFile;
+	    return;
+	}
+
+
 	
-	//Read file. Not working right now.
-	/*char *buffer = new char[ContentSize];
-	numBytes = openFile->Read(buffer, ContentSize);
+	//Read file.
+	char *buffer = new char[ContentSize];
+		numBytes = swapFile->ReadAt(buffer, ContentSize, 0);
+		
 	printf("Content read in %s was: %s\n", FileName, buffer);
 	
-    	delete buffer;*/
-    	delete openFile;
+    	delete buffer;
+    	
+    	delete swapFile;*/
      	
      	//Delete the file when done
-     	/*int s = remove(FileName);
-     	if(s == 0)
+     	/*int status = remove(FileName);
+     	if(status == 0)
      		printf("%s file deleted Successfully.\n", FileName);
      	else
      		printf("Unable to delete the file.\n");*/
@@ -193,7 +206,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	
 	pAddr = startPage * PageSize;
 	
-    memset(machine->mainMemory + pAddr, 0, size);
+   // memset(machine->mainMemory + pAddr, 0, size);
     //Paging();
 /*
 // then, copy in the code and data segments into memory
@@ -218,7 +231,11 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 void
 AddrSpace::Paging(int vpn)
 {
-	//memset(machine->mainMemory + pAddr + vpn * PageSize, 0, PageSize);
+	printf("VPN: %d\n\n", vpn);
+	vpn = vpn - noffH.code.inFileAddr;
+	vpn = vpn / PageSize;
+	
+	printf("NEW VPN: %d\n\n", vpn);
 	//Set the current page in the page table to valid
 	pageTable[vpn].valid = TRUE;
 
@@ -233,18 +250,60 @@ AddrSpace::Paging(int vpn)
 
 	*/
 	//Copy the code segments for the current page into memory
-    if (noffH.code.size > 0) {
-		
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + (startPage * PageSize) + (vpn * PageSize)]),
-			PageSize, noffH.code.inFileAddr + ( vpn * PageSize));
-		
-    } 
 	
-	//Copy the data segments for the current page into memory
-    if (noffH.initData.size > 0) {
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + (startPage * PageSize) + (vpn * PageSize)]),
-			PageSize, noffH.initData.inFileAddr + (vpn * PageSize));
+	//Find the first free page in memory
+	
+	counter = 0;
+	for(i = 0; i < NumPhysPages && counter < numPages; i++)
+	{
+		if(!memMap->Test(i))
+		{
+			if(counter == 0)
+				startPage = i;	//startPage is a class data member
+								//Should it be public or private? (Currently private)
+			counter++;
+		}
+		else
+			counter = 0;
+	}
+	if(counter < numPages)
+	{
+		printf("Not enough contiguous memory for new process; terminating!.\n");
+		interrupt->Halt();
+		return;
+	}
+	memMap->Mark(startPage);
+	pAddr = startPage * PageSize;
+	
+	memset(machine->mainMemory + pAddr + vpn * PageSize, 0, PageSize);
+	
+	printf("CODE VIRT ADDR: %d\n", noffH.code.virtualAddr);
+	printf("CODE INFILE ADDR: %d\n", noffH.code.inFileAddr);
+	
+	printf("READ TO: %d\n\n", noffH.code.virtualAddr + (startPage * PageSize) + (vpn * PageSize));
+	printf("READ FROM: %d\n\n", noffH.code.inFileAddr + ( vpn * PageSize));
+	printf("START PAGE: %d\n\n", startPage);
+	printf("VPN: %d\n\n", vpn);
+	
+		swapFile = fileSystem->Open(FileName);
+    	if (swapFile == NULL) {
+		printf("Perf test: unable to open %s\n", FileName);
+		return;
+	}
+	
+	
+    if (noffH.code.size > 0) {
+		//printf("*************************StartPage: %i\n", startPage);
+		//printf("*************************VPN: %i\n", vpn);
+		
+        executable->ReadAt(&(machine->mainMemory[(startPage * PageSize)]),
+			PageSize, noffH.code.inFileAddr + ( vpn * PageSize));
+	swapFile->WriteAt(machine->mainMemory[(startPage * PageSize)],
+			PageSize, 0);
     }
+    memMap->Print();
+    //PrintMainMem();
+    printf("AFTER READ AT\n\n");
 
 }
 
@@ -265,8 +324,7 @@ AddrSpace::~AddrSpace()
 		for(int i = startPage; i < numPages + startPage; i++)	// We need an offset of startPage + numPages for clearing.
 			memMap->Clear(i);
 
-		delete pageTable;
-
+		delete pageTable;	
 		memMap->Print();
 	}
 }
@@ -326,4 +384,14 @@ void AddrSpace::RestoreState()
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+}
+
+void AddrSpace::PrintMainMem() {
+	for (int j = 0; j < numPages; j++) {
+		printf("Page Number: %d\n\n", j); 
+		for (int k = 0; k < PageSize; k++) {
+			printf("%d ", machine->mainMemory[(j*PageSize) + k]);
+		}
+		printf("\n\n");
+	}
 }

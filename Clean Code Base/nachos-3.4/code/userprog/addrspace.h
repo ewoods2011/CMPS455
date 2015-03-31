@@ -32,6 +32,7 @@ class AddrSpace {
     void RestoreState();		// info on a context switch 
     
     void Paging(int vpn);
+    void PrintMainMem();
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
@@ -44,6 +45,7 @@ class AddrSpace {
 	unsigned int pageToInit;
 	
 	OpenFile *executable;
+	OpenFile *swapFile;
 	bool space;		//Boolean to remember if there was enough space or not
 	
 	char FileName[32];
