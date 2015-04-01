@@ -92,6 +92,7 @@ void processCreator(int arg)	// Used when a process first actually runs, not whe
 		threadToBeDestroyed = NULL;
 	}
     machine->Run();			// jump to the user progam
+   
     ASSERT(FALSE);			// machine->Run never returns;
     //delete executable;
  }
@@ -335,7 +336,7 @@ ExceptionHandler(ExceptionType which)
 	case PageFaultException :
 		//If there is a Page Fault, Display the error, and try to load in the page
 		printf("***Page Fault Occurred: Called by thread %i***\n",currentThread->getID());
-		//printf("REGISTER 39 IS: %d\n", machine->ReadRegister(39));
+		printf("REGISTER 39 IS: %d\n", machine->ReadRegister(39));
 		
 		//The virtual address is given in the register 39.
 		//Read that register to determine which page needs to be init-ed
@@ -350,7 +351,7 @@ ExceptionHandler(ExceptionType which)
 		//	delete currentThread->space;
 		//currentThread->Finish();	// Delete the thread.
 		
-		printf("AFTER PAGING\n\n");
+		//printf("AFTER PAGING\n\n");
 		break;
 		
 		default :

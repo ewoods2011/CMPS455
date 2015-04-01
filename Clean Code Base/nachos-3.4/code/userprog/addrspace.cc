@@ -68,6 +68,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	space = false;
 	pageToInit = 0;
 	executable = theExecutable;
+	pageList = new List();
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -149,11 +150,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	//Go to filesys/fstest.cc for more info on how to do
 	sprintf(FileName, "%s%d%s", "../SwapFiles/", currentThread->getID(), ".swap");
 	
-	//If unable to create the file, let the user know
-	if (!fileSystem->Create(FileName, 0)) {
-		printf("Perf test: can't create %s\n", FileName);
-     		return;
-     	}
+	ASSERT( fileSystem->Create(FileName, 0) );
      	
      	//Some code to write "1234567890" to the file
      	char* contents = "1234567890";
@@ -227,15 +224,19 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 */
 }
 
+void
+AddrSpace::DeleteExe()
+{
+	delete executable;
+}
 
 void
 AddrSpace::Paging(int vpn)
 {
-	printf("VPN: %d\n\n", vpn);
-	vpn = vpn - noffH.code.inFileAddr;
+	//printf("VPN: %d\n\n", vpn);
 	vpn = vpn / PageSize;
 	
-	printf("NEW VPN: %d\n\n", vpn);
+	//printf("NEW VPN: %d\n\n", vpn);
 	//Set the current page in the page table to valid
 	pageTable[vpn].valid = TRUE;
 
@@ -273,37 +274,41 @@ AddrSpace::Paging(int vpn)
 		return;
 	}
 	memMap->Mark(startPage);
+	
+	pageList->Append((void*)startPage);
+	
+	memMap->Print();
 	pAddr = startPage * PageSize;
 	
-	memset(machine->mainMemory + pAddr + vpn * PageSize, 0, PageSize);
+	memset(machine->mainMemory + pAddr, 0, PageSize);
 	
-	printf("CODE VIRT ADDR: %d\n", noffH.code.virtualAddr);
-	printf("CODE INFILE ADDR: %d\n", noffH.code.inFileAddr);
+	//printf("CODE VIRT ADDR: %d\n", noffH.code.virtualAddr);
+	//printf("CODE INFILE ADDR: %d\n", noffH.code.inFileAddr);
 	
-	printf("READ TO: %d\n\n", noffH.code.virtualAddr + (startPage * PageSize) + (vpn * PageSize));
-	printf("READ FROM: %d\n\n", noffH.code.inFileAddr + ( vpn * PageSize));
-	printf("START PAGE: %d\n\n", startPage);
-	printf("VPN: %d\n\n", vpn);
+	/*printf("MM Begin: %d\n", pAddr);
+	printf("MM End: %d\n", pAddr + PageSize);
+	printf("Start Position %d\n", noffH.code.inFileAddr + ( vpn * PageSize));
+	printf("End Position %d\n", noffH.code.inFileAddr + ( vpn * PageSize) + PageSize);
+	printf("START PAGE: %d\n", startPage);
+	printf("VPN: %d\n", vpn);*/
 	
-		swapFile = fileSystem->Open(FileName);
-    	if (swapFile == NULL) {
-		printf("Perf test: unable to open %s\n", FileName);
-		return;
-	}
+	swapFile = fileSystem->Open(FileName);
+	ASSERT( swapFile != NULL);
 	
 	
     if (noffH.code.size > 0) {
 		//printf("*************************StartPage: %i\n", startPage);
 		//printf("*************************VPN: %i\n", vpn);
-		
-        executable->ReadAt(&(machine->mainMemory[(startPage * PageSize)]),
+        executable->ReadAt(&(machine->mainMemory[pAddr]),
 			PageSize, noffH.code.inFileAddr + ( vpn * PageSize));
-	swapFile->WriteAt(&(machine->mainMemory[(startPage * PageSize)]),
-			PageSize, 0);
+			
+	swapFile->WriteAt(&(machine->mainMemory[pAddr]),
+			PageSize, noffH.code.inFileAddr + ( vpn * PageSize));
+
+			
     }
-    memMap->Print();
     //PrintMainMem();
-    printf("AFTER READ AT\n\n");
+  //  printf("AFTER READ AT\n\n");
 
 }
 
@@ -321,8 +326,12 @@ AddrSpace::~AddrSpace()
 	// which in turn only happens after space is set to true
 	if(space)
 	{
-		for(int i = startPage; i < numPages + startPage; i++)	// We need an offset of startPage + numPages for clearing.
-			memMap->Clear(i);
+		while(!pageList->IsEmpty()){
+			int pageToRemove = (int)pageList->Remove();
+			memMap->Clear(pageToRemove);
+		}
+			
+
 
 		delete pageTable;	
 		memMap->Print();

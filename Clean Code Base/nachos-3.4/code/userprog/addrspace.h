@@ -15,6 +15,7 @@
 
 #include "copyright.h"
 #include "filesys.h"
+#include "list.h"
 
 #define UserStackSize		1024 	// increase this as necessary!
 
@@ -33,6 +34,7 @@ class AddrSpace {
     
     void Paging(int vpn);
     void PrintMainMem();
+    void DeleteExe();
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
@@ -49,6 +51,7 @@ class AddrSpace {
 	bool space;		//Boolean to remember if there was enough space or not
 	
 	char FileName[32];
+	List *pageList;
 };
 
 #endif // ADDRSPACE_H

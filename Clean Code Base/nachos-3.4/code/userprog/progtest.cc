@@ -48,10 +48,11 @@ StartProcess(char *filename)
     space->RestoreState();		// load page table register
 
     machine->Run();			// jump to the user progam
+    delete executable;
     ASSERT(FALSE);			// machine->Run never returns;
 					// the address space exits
 					// by doing the syscall "exit"
-	delete executable;		//close the file
+			//close the file
 }
 
 // Data structures needed for the console test.  Threads making
