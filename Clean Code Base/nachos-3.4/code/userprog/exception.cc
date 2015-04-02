@@ -220,6 +220,7 @@ ExceptionHandler(ExceptionType which)
 					machine->WriteRegister(2, -1 * (threadID + 1));	// Return an error code
 					currentThread->killNewChild = false;	// Reset our variable
 				}
+				delete executable;
 				break;	// Get out.
 			}
 			case SC_Join :	// Join one process to another.
@@ -336,7 +337,7 @@ ExceptionHandler(ExceptionType which)
 	case PageFaultException :
 		//If there is a Page Fault, Display the error, and try to load in the page
 		printf("***Page Fault Occurred: Called by thread %i***\n",currentThread->getID());
-		printf("REGISTER 39 IS: %d\n", machine->ReadRegister(39));
+		//printf("REGISTER 39 IS: %d\n", machine->ReadRegister(39));
 		
 		//The virtual address is given in the register 39.
 		//Read that register to determine which page needs to be init-ed

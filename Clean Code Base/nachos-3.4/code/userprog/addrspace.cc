@@ -68,7 +68,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	space = false;
 	pageToInit = 0;
 	executable = theExecutable;
-	pageList = new List();
+	myPageList = new List();
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -143,6 +143,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 		//to indicate that the memory is in use
 		//memMap->Mark(i + startPage);
     }
+    pAddr = startPage * PageSize;
 	
 	memMap->Print();	// Useful!
 	
@@ -151,48 +152,22 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	sprintf(FileName, "%s%d%s", "../SwapFiles/", currentThread->getID(), ".swap");
 	
 	ASSERT( fileSystem->Create(FileName, 0) );
-     	
-     	//Some code to write "1234567890" to the file
-     	char* contents = "1234567890";
-     	int ContentSize = strlen(contents);
-     	//int FileSize = ((int)(ContentSize * 5000));
-     	int numBytes, i;
-     	
-	
-	/*swapFile = fileSystem->Open(FileName);
-    	if (swapFile == NULL) {
-		printf("Perf test: unable to open %s\n", FileName);
-		return;
-	}
-    	
-    	
-
-
-        numBytes = swapFile->Write(contents, ContentSize);
-	if (numBytes < 10) {
-	    printf("Perf test: unable to write %s\n", FileName);
-	    delete swapFile;
-	    return;
-	}
-
-
-	
-	//Read file.
-	char *buffer = new char[ContentSize];
-		numBytes = swapFile->ReadAt(buffer, ContentSize, 0);
 		
-	printf("Content read in %s was: %s\n", FileName, buffer);
+	swapFile = fileSystem->Open(FileName);
+	ASSERT( swapFile != NULL);
 	
-    	delete buffer;
-    	
-    	delete swapFile;*/
-     	
-     	//Delete the file when done
-     	/*int status = remove(FileName);
-     	if(status == 0)
-     		printf("%s file deleted Successfully.\n", FileName);
-     	else
-     		printf("Unable to delete the file.\n");*/
+	//Buffer used to copy from the executable to the swap file
+	char* buffer = new char[size];
+	
+	//Reading in from the executable to the buffer
+    executable->Read(buffer, size);
+  
+	
+	//Writing in to the swapFile from the buffer
+    swapFile->Write(buffer, size);
+	delete buffer;
+    delete swapFile;
+
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
@@ -201,10 +176,10 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	//Either way, it appears to zero out only however much memory is needed,
 	//so zeroing out all memory doesn't seem to be an issue. - Devin
 	
-	pAddr = startPage * PageSize;
+
 	
    // memset(machine->mainMemory + pAddr, 0, size);
-    //Paging();
+
 /*
 // then, copy in the code and data segments into memory
 //Change these too since they assume virtual page = physical page
@@ -228,32 +203,16 @@ void
 AddrSpace::DeleteExe()
 {
 	delete executable;
+	delete swapFile;
 }
 
 void
 AddrSpace::Paging(int vpn)
 {
-	//printf("VPN: %d\n\n", vpn);
+	
 	vpn = vpn / PageSize;
 	
-	//printf("NEW VPN: %d\n\n", vpn);
-	//Set the current page in the page table to valid
-	pageTable[vpn].valid = TRUE;
-
-	//Trying to figure out how to maths
-	/*
-	printf("Code VirtualAddr: %i\n",noffH.code.virtualAddr);
-	printf("StartPage: %i\n",startPage);
-	printf("PageToInit: %i\n",pageToInit);
-	printf("Size: %i\n", PageSize);
-	printf("Position: %i\n", noffH.code.inFileAddr + ( pageToInit * PageSize));
-	printf("Index: %i\n", noffH.code.virtualAddr + (startPage * PageSize) + (pageToInit * PageSize));
-
-	*/
-	//Copy the code segments for the current page into memory
-	
 	//Find the first free page in memory
-	
 	counter = 0;
 	for(i = 0; i < NumPhysPages && counter < numPages; i++)
 	{
@@ -267,49 +226,75 @@ AddrSpace::Paging(int vpn)
 		else
 			counter = 0;
 	}
-	if(counter < numPages)
-	{
-		printf("Not enough contiguous memory for new process; terminating!.\n");
-		interrupt->Halt();
-		return;
-	}
 	memMap->Mark(startPage);
 	
-	pageList->Append((void*)startPage);
+	IPT[startPage] = currentThread;
+	
+	myPageList->Append((void*)startPage);
 	
 	memMap->Print();
 	pAddr = startPage * PageSize;
 	
-	memset(machine->mainMemory + pAddr, 0, PageSize);
-	
-	//printf("CODE VIRT ADDR: %d\n", noffH.code.virtualAddr);
-	//printf("CODE INFILE ADDR: %d\n", noffH.code.inFileAddr);
-	
-	/*printf("MM Begin: %d\n", pAddr);
-	printf("MM End: %d\n", pAddr + PageSize);
-	printf("Start Position %d\n", noffH.code.inFileAddr + ( vpn * PageSize));
-	printf("End Position %d\n", noffH.code.inFileAddr + ( vpn * PageSize) + PageSize);
-	printf("START PAGE: %d\n", startPage);
-	printf("VPN: %d\n", vpn);*/
-	
 	swapFile = fileSystem->Open(FileName);
 	ASSERT( swapFile != NULL);
 	
-	
-    if (noffH.code.size > 0) {
-		//printf("*************************StartPage: %i\n", startPage);
-		//printf("*************************VPN: %i\n", vpn);
-        executable->ReadAt(&(machine->mainMemory[pAddr]),
-			PageSize, noffH.code.inFileAddr + ( vpn * PageSize));
-			
-	swapFile->WriteAt(&(machine->mainMemory[pAddr]),
-			PageSize, noffH.code.inFileAddr + ( vpn * PageSize));
-
-			
-    }
     //PrintMainMem();
-  //  printf("AFTER READ AT\n\n");
-
+  	//  printf("AFTER READ AT\n\n");
+  
+  	//FIFO
+  	if(pageRepChoice == 1)
+  	{
+  		if(pageList->getSize() == NumPhysPages)
+  			pageList->Remove();	 
+  		//Get the address to the thread that has the page we are removing
+  		Thread *threadNeeded = IPT[startPage];
+  		//Set the page from the thread's page table to invalid
+  		threadNeeded->space->pageTable[vpn].valid = FALSE;
+  		IPT[startPage] = NULL;
+  		//Zero out the main mem at that point.
+  		memset(machine->mainMemory + pAddr, 0, size); 	
+  	}
+  
+  	//Random
+  	else if(pageRepChoice == 2){
+  		if(pageList->getSize() == NumPhysPages)
+  		{
+  			int pageIndex = Random() % NumPhysPages;
+  			pageList->RemoveAt(pageIndex);
+  			//Get the address to the thread that has the page we are removing
+  			Thread *threadNeeded = IPT[startPage];
+  			//Set the page from the thread's page table to invalid
+  			threadNeeded->space->pageTable[vpn].valid = FALSE;
+  			IPT[startPage] = NULL;
+  			//Zero out the main mem at that point.
+  			memset(machine->mainMemory + pAddr, 0, size); 
+  	
+  		}
+  	}
+  	//Demand Paging
+  	else
+  	{
+  		if(memMap->NumClear() == 0)
+		{
+			printf("Not enough contiguous memory for new process; terminating!.\n");
+			interrupt->Halt();
+			return;
+		}
+  	}
+  	
+  	char* pageToAdd = new char[PageSize];
+  	printf("VPN: %d\n", vpn);
+  	swapFile->ReadAt(pageToAdd, PageSize, 
+  		noffH.code.inFileAddr + ( vpn * PageSize));
+  		
+  	swapFile->ReadAt(&(machine->mainMemory[pAddr]),
+		PageSize, noffH.code.inFileAddr +( vpn * PageSize));
+	
+	//Set the current page in the page table to valid
+	pageTable[vpn].valid = TRUE;
+  	pageList->Append((void*)pageToAdd);	
+  	delete pageToAdd;
+  	//PrintMainMem();	
 }
 
 //----------------------------------------------------------------------
@@ -326,16 +311,21 @@ AddrSpace::~AddrSpace()
 	// which in turn only happens after space is set to true
 	if(space)
 	{
-		while(!pageList->IsEmpty()){
-			int pageToRemove = (int)pageList->Remove();
+		while(!myPageList->IsEmpty()){
+			int pageToRemove = (int)myPageList->Remove();
 			memMap->Clear(pageToRemove);
 		}
 			
-
+		int status = remove(FileName);
+    	if(status == 0)
+    		printf("%s file deleted Successfully.\n", FileName);
+    	else
+    		printf("Unable to delete the file.\n");
 
 		delete pageTable;	
 		memMap->Print();
 	}
+	//DeleteExe();
 }
 
 //----------------------------------------------------------------------

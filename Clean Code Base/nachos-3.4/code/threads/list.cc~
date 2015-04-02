@@ -249,12 +249,12 @@ List::RemoveAt(int key)
 	void *thing;
 	
 	if (IsEmpty())
-		return NULL;
+		return;
 
 	if (size == 1) {
 		first = NULL;
 		last = NULL;
-		return NULL;
+		return;
 	}
 	int j = 0;
 

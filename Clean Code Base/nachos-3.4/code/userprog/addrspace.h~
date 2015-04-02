@@ -31,6 +31,7 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
+    TranslationEntry* getPageTable(){return pageTable;}
     
     void Paging(int vpn);
     void PrintMainMem();
@@ -51,7 +52,9 @@ class AddrSpace {
 	bool space;		//Boolean to remember if there was enough space or not
 	
 	char FileName[32];
-	List pageList;
+	List *myPageList;
+	
 };
+
 
 #endif // ADDRSPACE_H

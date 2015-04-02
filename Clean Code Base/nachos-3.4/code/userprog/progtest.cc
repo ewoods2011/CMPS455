@@ -39,6 +39,14 @@ StartProcess(char *filename)
 		printf("Best-fit.\n");
 	else
 		printf("Worst-fit.\n");
+		
+	printf("Page Replacement algorithm chosen: ");
+	if(pageRepChoice == 0)
+		printf("Demand Paging.\n");
+	else if (pageRepChoice == 1)
+		printf("FIFO.\n");
+	else
+		printf("Random.\n");
 	
     space = new AddrSpace(executable);    
     currentThread->space = space;
@@ -46,9 +54,8 @@ StartProcess(char *filename)
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
-
+	delete executable;
     machine->Run();			// jump to the user progam
-    delete executable;
     ASSERT(FALSE);			// machine->Run never returns;
 					// the address space exits
 					// by doing the syscall "exit"

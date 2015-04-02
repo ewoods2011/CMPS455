@@ -222,6 +222,7 @@ Cleanup()
 	delete activeThreads;
 	delete memMap;
 	delete pageList;
+	delete IPT;
 #endif
 
 #ifdef FILESYS_NEEDED

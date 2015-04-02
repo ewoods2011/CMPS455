@@ -31,14 +31,17 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
+
     
     void Paging(int vpn);
     void PrintMainMem();
     void DeleteExe();
-
-  private:
+    
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
+
+  private:
+
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
 	unsigned int startPage;		//Page number that the program starts at
@@ -51,7 +54,9 @@ class AddrSpace {
 	bool space;		//Boolean to remember if there was enough space or not
 	
 	char FileName[32];
-	List *pageList;
+	List *myPageList;
+	
 };
+
 
 #endif // ADDRSPACE_H
