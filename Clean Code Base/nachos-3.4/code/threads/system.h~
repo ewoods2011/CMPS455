@@ -43,7 +43,7 @@ extern List *pageList;				//List used to keep track of pages used
 extern Machine* machine;	// user program memory and registers
 extern List* activeThreads;	// active thread list for process management
 extern int threadID;	// unique process id
-extern Thread* IPT[32];		//Inverter Page Table
+extern Thread* IPT[NumPhysPages];		//Inverter Page Table
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

@@ -21,7 +21,7 @@
 #include "noff.h"
 
     NoffHeader noffH;
-    unsigned int i, size, pAddr, counter;
+    unsigned int i, size, newsize, pAddr, counter;
     char FileName[32];
 
 
@@ -80,6 +80,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
 			+ UserStackSize;	// we need to increase the size
 						// to leave room for the stack
+	newsize = sizeof(noffH) + size;
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
@@ -146,29 +147,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     pAddr = startPage * PageSize;
 	
 	memMap->Print();	// Useful!
-	
-	//Create the Swap File to Write to
-	//Go to filesys/fstest.cc for more info on how to do
-	sprintf(FileName, "%s%d%s", "../SwapFiles/", currentThread->getID(), ".swap");
-	
-	ASSERT( fileSystem->Create(FileName, 0) );
-		
-	swapFile = fileSystem->Open(FileName);
-	ASSERT( swapFile != NULL);
-	
-	//Buffer used to copy from the executable to the swap file
-	char* buffer = new char[size];
-	
-	//Reading in from the executable to the buffer
-    executable->Read(buffer, size);
-  
-	
-	//Writing in to the swapFile from the buffer
-    swapFile->Write(buffer, size);
-	delete buffer;
-    delete swapFile;
 
-    
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
 //    bzero(machine->mainMemory, size); rm for Solaris
@@ -199,12 +178,6 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 */
 }
 
-void
-AddrSpace::DeleteExe()
-{
-	delete executable;
-	delete swapFile;
-}
 
 void
 AddrSpace::Paging(int vpn)
@@ -235,8 +208,6 @@ AddrSpace::Paging(int vpn)
 	memMap->Print();
 	pAddr = startPage * PageSize;
 	
-	swapFile = fileSystem->Open(FileName);
-	ASSERT( swapFile != NULL);
 	
     //PrintMainMem();
   	//  printf("AFTER READ AT\n\n");
@@ -244,8 +215,9 @@ AddrSpace::Paging(int vpn)
   	//FIFO
   	if(pageRepChoice == 1)
   	{
-  		if(pageList->getSize() == NumPhysPages)
-  			pageList->Remove();	 
+/*  		if(pageList->getSize() == NumPhysPages)
+  			pageList->Remove();	 */
+  			
   		//Get the address to the thread that has the page we are removing
   		Thread *threadNeeded = IPT[startPage];
   		//Set the page from the thread's page table to invalid
@@ -257,10 +229,11 @@ AddrSpace::Paging(int vpn)
   
   	//Random
   	else if(pageRepChoice == 2){
-  		if(pageList->getSize() == NumPhysPages)
-  		{
-  			int pageIndex = Random() % NumPhysPages;
-  			pageList->RemoveAt(pageIndex);
+  		//if(pageList->getSize() == NumPhysPages)
+  		//{
+  		//	int pageIndex = Random() % NumPhysPages;
+  		//	pageList->RemoveAt(pageIndex);*/
+  		
   			//Get the address to the thread that has the page we are removing
   			Thread *threadNeeded = IPT[startPage];
   			//Set the page from the thread's page table to invalid
@@ -269,7 +242,7 @@ AddrSpace::Paging(int vpn)
   			//Zero out the main mem at that point.
   			memset(machine->mainMemory + pAddr, 0, size); 
   	
-  		}
+  		//}
   	}
   	//Demand Paging
   	else
@@ -281,19 +254,19 @@ AddrSpace::Paging(int vpn)
 			return;
 		}
   	}
-  	
-  	char* pageToAdd = new char[PageSize];
-  	printf("VPN: %d\n", vpn);
-  	swapFile->ReadAt(pageToAdd, PageSize, 
-  		noffH.code.inFileAddr + ( vpn * PageSize));
+
   		
   	swapFile->ReadAt(&(machine->mainMemory[pAddr]),
 		PageSize, noffH.code.inFileAddr +( vpn * PageSize));
 	
 	//Set the current page in the page table to valid
+	//Update the physical page of the current page
+	//Update the virtual page of the current page
 	pageTable[vpn].valid = TRUE;
-  	pageList->Append((void*)pageToAdd);	
-  	delete pageToAdd;
+	pageTable[vpn].physicalPage = startPage;
+	pageTable[vpn].virtualPage = vpn;
+
+
   	//PrintMainMem();	
 }
 
@@ -311,7 +284,7 @@ AddrSpace::~AddrSpace()
 	// which in turn only happens after space is set to true
 	if(space)
 	{
-		while(!myPageList->IsEmpty()){
+		while(!myPageList->IsEmpty()){  	
 			int pageToRemove = (int)myPageList->Remove();
 			memMap->Clear(pageToRemove);
 		}
@@ -325,7 +298,9 @@ AddrSpace::~AddrSpace()
 		delete pageTable;	
 		memMap->Print();
 	}
-	//DeleteExe();
+	delete myPageList;
+	delete executable;
+	delete swapFile;
 }
 
 //----------------------------------------------------------------------
@@ -341,7 +316,7 @@ AddrSpace::~AddrSpace()
 void
 AddrSpace::InitRegisters()
 {
-    int i;
+    int i; 
 
     for (i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, 0);
@@ -394,3 +369,30 @@ void AddrSpace::PrintMainMem() {
 		printf("\n\n");
 	}
 }
+
+void
+AddrSpace::CreateSwapFile(int threadID)
+{
+	//Create the Swap File to Write to
+	//Go to filesys/fstest.cc for more info on how to do
+	
+	sprintf(FileName, "%s%d%s", "../SwapFiles/", threadID, ".swap");
+	//printf("Creating file: %s\n", FileName);
+	ASSERT( fileSystem->Create(FileName, 0) );
+		
+	swapFile = fileSystem->Open(FileName);
+	ASSERT( swapFile != NULL);
+	
+	//Buffer used to copy from the executable to the swap file
+	char* buffer = new char[newsize];
+	
+	//Reading in from the executable to the buffer
+    executable->Read(buffer, newsize);
+  
+	
+	//Writing in to the swapFile from the buffer
+    swapFile->Write(buffer, newsize);
+	delete buffer;
+
+}
+

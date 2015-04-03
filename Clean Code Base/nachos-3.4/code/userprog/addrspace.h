@@ -35,7 +35,7 @@ class AddrSpace {
     
     void Paging(int vpn);
     void PrintMainMem();
-    void DeleteExe();
+    void CreateSwapFile(int threadID);
     
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

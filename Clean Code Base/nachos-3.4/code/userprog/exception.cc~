@@ -201,6 +201,7 @@ ExceptionHandler(ExceptionType which)
 				delete filename;
 
 				// Calculate needed memory space
+
 				AddrSpace *space;
 				space = new AddrSpace(executable);
 				// Do we have enough space?
@@ -209,6 +210,7 @@ ExceptionHandler(ExceptionType which)
 					Thread* execThread = new Thread("thrad!");	// Make a new thread for the process.
 					execThread->space = space;	// Set the address space to the new space.
 					execThread->setID(threadID);	// Set the unique thread ID
+					execThread->space->CreateSwapFile(execThread->getID());
 					activeThreads->Append(execThread);	// Put it on the active list.
 					machine->WriteRegister(2, threadID);	// Return the thread ID as our Exec return variable.
 					threadID++;	// Increment the total number of threads.
@@ -220,7 +222,7 @@ ExceptionHandler(ExceptionType which)
 					machine->WriteRegister(2, -1 * (threadID + 1));	// Return an error code
 					currentThread->killNewChild = false;	// Reset our variable
 				}
-				//delete executable;
+
 				break;	// Get out.
 			}
 			case SC_Join :	// Join one process to another.
@@ -262,7 +264,7 @@ ExceptionHandler(ExceptionType which)
 				if(currentThread->space)	// Delete the used memory from the process.
 					delete currentThread->space;
 					
-				delete executable;			//Close the file
+				//delete executable;			//Close the file
 				currentThread->Finish();	// Delete the thread.
 
 				break;

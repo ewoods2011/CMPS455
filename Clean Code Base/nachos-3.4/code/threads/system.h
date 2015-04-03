@@ -36,7 +36,7 @@ extern int pageRepChoice;
 extern bool pageFlag;
 
 extern BitMap *memMap;				//Bitmap to keep track of memory use
-extern List *pageList;				//List used to keep track of pages used
+
 
 #ifdef USER_PROGRAM
 #include "machine.h"

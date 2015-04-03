@@ -24,7 +24,7 @@ int pageRepChoice;
 bool pageFlag;
 
 BitMap * memMap;
-List * pageList;
+
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -221,8 +221,7 @@ Cleanup()
     delete machine;
 	delete activeThreads;
 	delete memMap;
-	delete pageList;
-	delete IPT;
+
 #endif
 
 #ifdef FILESYS_NEEDED

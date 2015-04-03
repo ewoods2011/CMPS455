@@ -24,7 +24,7 @@ int pageRepChoice;
 bool pageFlag;
 
 BitMap * memMap;
-List * pageList;
+
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -182,7 +182,7 @@ Initialize(int argc, char **argv)
 	
 #ifdef USER_PROGRAM
 	memMap = new BitMap(NumPhysPages);
-	pageList = new List();
+
 	for(int i = 0; i < NumPhysPages; i++)
 		IPT[i] = NULL;
 		
@@ -221,7 +221,7 @@ Cleanup()
     delete machine;
 	delete activeThreads;
 	delete memMap;
-	delete pageList;
+
 #endif
 
 #ifdef FILESYS_NEEDED
