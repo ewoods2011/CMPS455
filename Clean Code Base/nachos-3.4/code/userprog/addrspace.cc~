@@ -22,7 +22,8 @@
 
     NoffHeader noffH;
     unsigned int i, size, newsize, pAddr, counter;
-    char FileName[32];
+    char FileName[64];
+    //Semaphore * mutex; 
 
 
 //----------------------------------------------------------------------
@@ -69,6 +70,8 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	pageToInit = 0;
 	executable = theExecutable;
 	myPageList = new List();
+	//A mutex so no two can page at the same time
+	//mutex = new Semaphore("mutey", 1);
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -139,7 +142,9 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 void
 AddrSpace::Paging(int vpn)
 {
-	
+	//Ensure no space can page twice at the same time
+	//mutex->P();
+	stats->numPageFaults++;
 	vpn = vpn / PageSize;
 	//Output error to user, including which process has the page fault, and what virtual page is requested
 	if(extraOutputChoice)
@@ -190,11 +195,11 @@ AddrSpace::Paging(int vpn)
 			//Tell the user that a physical page was swapped out from the coremap
 			printf("Swap out physical page %d from process %d.\n", startPage, coreMap[startPage].thread->getID());
 			//Tell the user which virtual page was set to invalid
-			printf("Virtual Page %d removed.\n\n", coreMap[startPage].virtPageNum);
+			printf("Virtual Page %d removed.\n", coreMap[startPage].virtPageNum);
+			memMap->Print();
+			printf("\n");
 		}
-		
-		
-		
+
 	}
 	
 	//There was enough space
@@ -220,23 +225,26 @@ AddrSpace::Paging(int vpn)
 		//Display extra output if user requested
 		if(extraOutputChoice){
 			//Output the physical page being assigned
-			printf("Assigning physical page %d\n\n", startPage);
+			printf("Assigning physical page %d\n", startPage);
+			memMap->Print();
+			printf("\n");
 		}
 		
-		//The core map should correspond to the bitmap in terms of what is marked
-		//It is a representation of physical memory
+		//The core map doesn't care that it is allocated
 		coreMap[startPage].allocated = true;
-		coreMap[startPage].thread = currentThread;
-		coreMap[startPage].virtPageNum = vpn;
-		coreMap[startPage].physPageNum = startPage;
 		
-		if(pageRepChoice == 1)
-			coreFIFOList->Append(&coreMap[startPage]);
 	}
+	
+	//The core map should correspond to the bitmap in terms of what is marked
+	//It is a representation of physical memory
+	coreMap[startPage].thread = currentThread;
+	coreMap[startPage].virtPageNum = vpn;
+	coreMap[startPage].physPageNum = startPage;
+	if(pageRepChoice == 1)
+		coreFIFOList->Append(&coreMap[startPage]);
 
 	myPageList->Append((void*)startPage);
 	
-	//memMap->Print();
 	//Set physical address
 	pAddr = startPage * PageSize;
 
@@ -254,7 +262,7 @@ AddrSpace::Paging(int vpn)
 	pageTable[vpn].physicalPage = startPage;
 	pageTable[vpn].virtualPage = vpn;
 
-	
+	mutex->V();
 }
 
 //----------------------------------------------------------------------
@@ -278,13 +286,14 @@ AddrSpace::~AddrSpace()
 		}
 			
 		int status = remove(FileName);
-    	if(status == 0)
-    		printf("%s file deleted Successfully.\n", FileName);
-    	else
-    		printf("Unable to delete the file.\n");
+    		if(status == 0)
+    			printf("%s file deleted Successfully.\n\n", FileName);
+    		else	
+    			printf("Unable to delete the file.\n\n");
 
 		delete pageTable;	
 		memMap->Print();
+		printf("\n");
 	}
 	delete myPageList;
 	delete executable;
@@ -363,11 +372,13 @@ AddrSpace::CreateSwapFile(int threadID)
 {
 	//Create the Swap File to Write to
 	//Go to filesys/fstest.cc for more info on how to do
-	
 	sprintf(FileName, "%s%d%s", "../SwapFiles/", threadID, ".swap");
-	//printf("Creating file: %s\n", FileName);
+	printf("Creating file: %s\n", FileName);
+	
+	//Create the Swap File
 	ASSERT( fileSystem->Create(FileName, 0) );
-		
+	
+	//Open the Swap File
 	swapFile = fileSystem->Open(FileName);
 	ASSERT( swapFile != NULL);
 	

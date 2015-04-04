@@ -35,6 +35,7 @@ static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread * getID(int toGet);
 OpenFile *executable;
+Semaphore * mutex; 
 
 // end FA98
 
@@ -109,6 +110,8 @@ ExceptionHandler(ExceptionType which)
 	int i, j;
 	char *ch = new char [500];
 	int virtPageAddr; //For PageFaultException.  Gives the page number that caused the fault.
+	//A mutex so no two can page at the same time
+	mutex = new Semaphore("mutey", 1);
 
 	switch ( which )
 	{
@@ -342,7 +345,8 @@ ExceptionHandler(ExceptionType which)
 		//The virtual address is given in the register 39.
 		//Read that register to determine which page needs to be init-ed
 		virtPageAddr = machine->ReadRegister(39);
-		
+		//Ensure no space can page twice at the same time
+		mutex->P();
 		currentThread->space->Paging(virtPageAddr);	//Load in the page that caused the page fault
 		
 
