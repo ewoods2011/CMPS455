@@ -338,8 +338,6 @@ ExceptionHandler(ExceptionType which)
 		break;
 	case PageFaultException :
 		//If there is a Page Fault, Display the error, and try to load in the page
-		printf("***Page Fault Occurred: Called by thread %i***\n",currentThread->getID());
-		//printf("REGISTER 39 IS: %d\n", machine->ReadRegister(39));
 		
 		//The virtual address is given in the register 39.
 		//Read that register to determine which page needs to be init-ed

@@ -33,6 +33,7 @@ extern Timer *timer;				// the hardware alarm clock
 extern int threadChoice;
 extern int memChoice;
 extern int pageRepChoice;
+extern bool extraDataChoice;
 extern bool pageFlag;
 
 extern BitMap *memMap;				//Bitmap to keep track of memory use
@@ -43,7 +44,6 @@ extern BitMap *memMap;				//Bitmap to keep track of memory use
 extern Machine* machine;	// user program memory and registers
 extern List* activeThreads;	// active thread list for process management
 extern int threadID;	// unique process id
-extern Thread* IPT[NumPhysPages];		//Inverter Page Table
 
 //A single entry in the array that is our core map (IPT?)
 //Basically means it's one page frame

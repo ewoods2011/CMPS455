@@ -21,6 +21,7 @@ Timer *timer;				// the hardware timer device,
 int threadChoice;
 int memChoice;
 int pageRepChoice;
+bool extraOutputChoice;
 bool pageFlag;
 
 BitMap * memMap;
@@ -100,6 +101,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 	pageFlag = false;
+	extraOutputChoice = false;
 #endif
 #ifdef FILESYS_NEEDED
     bool format = FALSE;	// format disk
@@ -141,6 +143,9 @@ Initialize(int argc, char **argv)
 			pageRepChoice = 0;
 	    else
 			pageRepChoice = atoi(*(argv+1));
+	    argCount = 2;
+	} else if (!strcmp(*argv, "-E")) {
+	    extraOutputChoice = true;
 	    argCount = 2;
 	}
 #ifdef USER_PROGRAM

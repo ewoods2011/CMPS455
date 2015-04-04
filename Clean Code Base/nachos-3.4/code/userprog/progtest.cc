@@ -32,21 +32,28 @@ StartProcess(char *filename)
 	return;
     }
 	
-	printf("Memory allocation method chosen: ");
+	//Not Used anymore
+	/*printf("Memory allocation method chosen: ");
 	if(memChoice == 1)
 		printf("First-fit.\n");
 	else if (memChoice == 2)
 		printf("Best-fit.\n");
 	else
 		printf("Worst-fit.\n");
-		
-	printf("Page Replacement algorithm chosen: ");
+	*/
+	
+	printf("Page Replacement Algorithm chosen: ");
 	if(pageRepChoice == 0)
 		printf("Demand Paging.\n");
 	else if (pageRepChoice == 1)
 		printf("FIFO.\n");
-	else
+	else if (pageRepChoice == 2)
 		printf("Random.\n");
+	else
+		printf("Demand Paging (Default).\n");
+		
+    printf("Page Size: %d\n", PageSize);
+    printf("Number of Physical Pages: %d\n", NumPhysPages);
 	
     space = new AddrSpace(executable);    
     currentThread->space = space;

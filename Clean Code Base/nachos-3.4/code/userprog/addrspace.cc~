@@ -84,27 +84,6 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-	//Change this to reference the bitmap for free pages
-	//instead of total amount of pages
-	//This requires a global bitmap instance
-	
-	//Don't need to find start page anymore
-	/*
-	counter = 0;
-	
-	for(i = 0; i < NumPhysPages && counter < numPages; i++)
-	{
-		if(!memMap->Test(i))
-		{
-			if(counter == 0)
-				startPage = i;	//startPage is a class data member
-								//Should it be public or private? (Currently private)
-			counter++;
-		}
-		else
-			counter = 0;
-	}
-	*/
 	
 	DEBUG('a', "%i contiguous blocks found for %i pages\n", counter, numPages);
 
@@ -162,6 +141,9 @@ AddrSpace::Paging(int vpn)
 {
 	
 	vpn = vpn / PageSize;
+	//Output error to user, including which process has the page fault, and what virtual page is requested
+	if(extraOutputChoice)
+		printf("***Page Fault Occurred: Process %i requests virtual page %i***\n",currentThread->getID(), vpn);
 	
 	//Check if there is not enough space
 	if (memMap->NumClear() <= 0)
@@ -169,7 +151,6 @@ AddrSpace::Paging(int vpn)
 		int physPageToSwap;
 		//FIFO
 		if (pageRepChoice == 1) {
-			printf("**SWAPPIN PAGE!\n");
 			//We want to remove the CoreMapEntry that was first added to the list 
 			CoreMapEntry *entry = (CoreMapEntry*)coreFIFOList->Remove();
 			//We need to take the least recently used page and swap it for this new page of memory
@@ -184,7 +165,7 @@ AddrSpace::Paging(int vpn)
 			
 		}
 		
-		//Rando
+		//Random
 		else if (pageRepChoice == 2) {
 			//Select a random page to remove, ranging from 0 - NumPhysPages
 			physPageToSwap = Random() % NumPhysPages;
@@ -202,6 +183,14 @@ AddrSpace::Paging(int vpn)
 			printf("Not enough memory for new process; terminating!.\n");
 			interrupt->Halt();
 			return;
+		}
+		
+		//Extra Output telling the user that a page was swapped out
+		if(extraOutputChoice){
+			//Tell the user that a physical page was swapped out from the coremap
+			printf("Swap out physical page %d from process %d.\n", startPage, coreMap[startPage].thread->getID());
+			//Tell the user which virtual page was set to invalid
+			printf("Virtual Page %d removed.\n\n", coreMap[startPage].virtPageNum);
 		}
 		
 		
@@ -228,6 +217,12 @@ AddrSpace::Paging(int vpn)
 		}
 		memMap->Mark(startPage);
 		
+		//Display extra output if user requested
+		if(extraOutputChoice){
+			//Output the physical page being assigned
+			printf("Assigning physical page %d\n\n", startPage);
+		}
+		
 		//The core map should correspond to the bitmap in terms of what is marked
 		//It is a representation of physical memory
 		coreMap[startPage].allocated = true;
@@ -241,12 +236,13 @@ AddrSpace::Paging(int vpn)
 
 	myPageList->Append((void*)startPage);
 	
-	memMap->Print();
+	//memMap->Print();
 	//Set physical address
 	pAddr = startPage * PageSize;
-	
+
 	//Clear our a page of main mem
-  	memset(machine->mainMemory + pAddr, 0, PageSize); 	
+  	memset(machine->mainMemory + pAddr, 0, PageSize); 
+  		
   	//Load from the swapfile to main mem
   	swapFile->ReadAt(&(machine->mainMemory[pAddr]),
 		PageSize, noffH.code.inFileAddr +( vpn * PageSize));
@@ -258,8 +254,7 @@ AddrSpace::Paging(int vpn)
 	pageTable[vpn].physicalPage = startPage;
 	pageTable[vpn].virtualPage = vpn;
 
-
-  	//PrintMainMem();	
+	
 }
 
 //----------------------------------------------------------------------
@@ -276,6 +271,7 @@ AddrSpace::~AddrSpace()
 	// which in turn only happens after space is set to true
 	if(space)
 	{
+		printf("Freeing up the allocated memory for process: %d\n", currentThread->getID());
 		while(!myPageList->IsEmpty()){  	
 			int pageToRemove = (int)myPageList->Remove();
 			memMap->Clear(pageToRemove);

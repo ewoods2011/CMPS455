@@ -33,6 +33,7 @@ extern Timer *timer;				// the hardware alarm clock
 extern int threadChoice;
 extern int memChoice;
 extern int pageRepChoice;
+extern bool extraOutputChoice;
 extern bool pageFlag;
 
 extern BitMap *memMap;				//Bitmap to keep track of memory use

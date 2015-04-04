@@ -1,5 +1,10 @@
 int main(){
-	Exec("../test/testexechalf");
-	//	Yield();
-	Exit(0);
+		int i;
+	  for (i = 0; i < 10000; i++) {
+
+        Exec("../test/test2");
+
+        Yield();
+
+    }
 	}

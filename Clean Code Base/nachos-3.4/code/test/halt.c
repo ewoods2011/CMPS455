@@ -23,6 +23,7 @@ main()
 	*/
 	Write("Running Halt", 11, 1);
 	Yield();
+	Yield();
 	//Halt();
     /* not reached */
 }
