@@ -84,40 +84,9 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-	//Change this to reference the bitmap for free pages
-	//instead of total amount of pages
-	//This requires a global bitmap instance
-	
-	//Don't need to find start page anymore
-	/*
-	counter = 0;
-	
-	for(i = 0; i < NumPhysPages && counter < numPages; i++)
-	{
-		if(!memMap->Test(i))
-		{
-			if(counter == 0)
-				startPage = i;	//startPage is a class data member
-								//Should it be public or private? (Currently private)
-			counter++;
-		}
-		else
-			counter = 0;
-	}
-	*/
 	
 	DEBUG('a', "%i contiguous blocks found for %i pages\n", counter, numPages);
-	counter = 0;
-	//TODO - Insert bitmap function to see if bitmap is full
-	//If no memory available, terminate
-	/*
-	if(counter < numPages)
-	{
-		printf("Not enough contiguous memory for new process; terminating!.\n");
-		currentThread->killNewChild = true;
-		return;
-	}
-	*/
+
 
 	//If we get past the if statement, then there was sufficient space
 	space = true;
@@ -140,24 +109,12 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 						// a separate page, we could set its 
 						// pages to be read-only
 
-		//Take the global bitmap and set the relevant chunks
-		//to indicate that the memory is in use
-		//memMap->Mark(i + startPage);
     }
     pAddr = startPage * PageSize;
 	
 	memMap->Print();	// Useful!
 
-// zero out the entire address space, to zero the unitialized data segment 
-// and the stack segment
-//    bzero(machine->mainMemory, size); rm for Solaris
-	//Edited version adds startPage * PageSize to the address. Hopefully this is proper.
-	//Either way, it appears to zero out only however much memory is needed,
-	//so zeroing out all memory doesn't seem to be an issue. - Devin
-	
 
-	
-   // memset(machine->mainMemory + pAddr, 0, size);
 
 /*
 // then, copy in the code and data segments into memory
@@ -185,77 +142,91 @@ AddrSpace::Paging(int vpn)
 	
 	vpn = vpn / PageSize;
 	
-	//Find the first free page in memory
-	counter = 0;
-	for(i = 0; i < NumPhysPages && counter < numPages; i++)
+	//Check if there is not enough space
+	if (memMap->NumClear() <= 0)
 	{
-		if(!memMap->Test(i))
-		{
-			if(counter == 0)
-				startPage = i;	//startPage is a class data member
-								//Should it be public or private? (Currently private)
-			counter++;
+		int physPageToSwap;
+		//FIFO
+		if (pageRepChoice == 1) {
+			printf("**SWAPPIN PAGE!\n");
+			//We want to remove the CoreMapEntry that was first added to the list 
+			CoreMapEntry *entry = (CoreMapEntry*)coreFIFOList->Remove();
+			//We need to take the least recently used page and swap it for this new page of memory
+			//For now we'll just do it with 0
+			physPageToSwap = entry->physPageNum;
+			//We need to:
+			//1 - Set the valid bit of the page that is currently in that spot at main mem to false
+			//This is confusing.
+			coreMap[physPageToSwap].thread->space->pageTable[coreMap[physPageToSwap].virtPageNum].valid = false; //Now that is "not in memory anymore"
+			//2 - Set the start page to whatever physPageToSwap was
+			startPage = physPageToSwap;
+			
 		}
-		else
-			counter = 0;
-	}
-	memMap->Mark(startPage);
-	
-	IPT[startPage] = currentThread;
-	
-	myPageList->Append((void*)startPage);
-	
-	memMap->Print();
-	pAddr = startPage * PageSize;
-	
-	
-    //PrintMainMem();
-  	//  printf("AFTER READ AT\n\n");
-  
-  	//FIFO
-  	if(pageRepChoice == 1)
-  	{
-/*  		if(pageList->getSize() == NumPhysPages)
-  			pageList->Remove();	 */
-  			
-  		//Get the address to the thread that has the page we are removing
-  		Thread *threadNeeded = IPT[startPage];
-  		//Set the page from the thread's page table to invalid
-  		threadNeeded->space->pageTable[vpn].valid = FALSE;
-  		IPT[startPage] = NULL;
-  		//Zero out the main mem at that point.
-  		memset(machine->mainMemory + pAddr, 0, size); 	
-  	}
-  
-  	//Random
-  	else if(pageRepChoice == 2){
-  		//if(pageList->getSize() == NumPhysPages)
-  		//{
-  		//	int pageIndex = Random() % NumPhysPages;
-  		//	pageList->RemoveAt(pageIndex);*/
-  		
-  			//Get the address to the thread that has the page we are removing
-  			Thread *threadNeeded = IPT[startPage];
-  			//Set the page from the thread's page table to invalid
-  			threadNeeded->space->pageTable[vpn].valid = FALSE;
-  			IPT[startPage] = NULL;
-  			//Zero out the main mem at that point.
-  			memset(machine->mainMemory + pAddr, 0, size); 
-  	
-  		//}
-  	}
-  	//Demand Paging
-  	else
-  	{
-  		if(memMap->NumClear() == 0)
+		
+		//Rando
+		else if (pageRepChoice == 2) {
+			//Select a random page to remove, ranging from 0 - NumPhysPages
+			physPageToSwap = Random() % NumPhysPages;
+			//We need to:
+			//1 - Set the valid bit of the page that is currently in that spot at main mem to false
+			//This is confusing.
+			coreMap[physPageToSwap].thread->space->pageTable[coreMap[physPageToSwap].virtPageNum].valid = false; //Now that is "not in memory anymore"
+			//2 - Set the start page to whatever physPageToSwap was
+			startPage = physPageToSwap;
+		}
+		
+		//Demand Paging
+		else 
 		{
-			printf("Not enough contiguous memory for new process; terminating!.\n");
+			printf("Not enough memory for new process; terminating!.\n");
 			interrupt->Halt();
 			return;
 		}
-  	}
+		
+		
+		
+	}
+	
+	//There was enough space
+	else
+	{
+	
+		//Find the first free page in memory
+		counter = 0;
+		for(i = 0; i < NumPhysPages && counter < numPages; i++)
+		{
+			if(!memMap->Test(i))
+			{
+				if(counter == 0)
+					startPage = i;	//startPage is a class data member
+									//Should it be public or private? (Currently private)
+				counter++;
+			}
+			else
+				counter = 0;
+		}
+		memMap->Mark(startPage);
+		
+		//The core map should correspond to the bitmap in terms of what is marked
+		//It is a representation of physical memory
+		coreMap[startPage].allocated = true;
+		coreMap[startPage].thread = currentThread;
+		coreMap[startPage].virtPageNum = vpn;
+		coreMap[startPage].physPageNum = startPage;
+		
+		if(pageRepChoice == 1)
+			coreFIFOList->Append(&coreMap[startPage]);
+	}
 
-  		
+	myPageList->Append((void*)startPage);
+	
+	memMap->Print();
+	//Set physical address
+	pAddr = startPage * PageSize;
+	
+	//Clear our a page of main mem
+  	memset(machine->mainMemory + pAddr, 0, PageSize); 	
+  	//Load from the swapfile to main mem
   	swapFile->ReadAt(&(machine->mainMemory[pAddr]),
 		PageSize, noffH.code.inFileAddr +( vpn * PageSize));
 	

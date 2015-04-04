@@ -34,7 +34,13 @@ FileSystem  *fileSystem;
 Machine *machine;	// user program memory and registers
 List* activeThreads;
 int threadID;
-Thread* IPT[NumPhysPages];
+
+//Core map basically looks like this?ff
+// | t0 | t0 | t0 | t1 | t1 | t2 | t2 | t2 | t6 | t6 | t4 | ...
+CoreMapEntry * coreMap;
+
+//List of CoreMapEntry to use when doing FIFO
+List * coreFIFOList;
 #endif
 
 #ifdef FILESYS
@@ -182,15 +188,25 @@ Initialize(int argc, char **argv)
 	
 #ifdef USER_PROGRAM
 	memMap = new BitMap(NumPhysPages);
-
-	for(int i = 0; i < NumPhysPages; i++)
-		IPT[i] = NULL;
 		
 	machine = new Machine(debugUserProg);
 
 
 	activeThreads = new List();	// Make the active threads list.
 	threadID = 1; // Initialize our total number of active threads.
+	
+	coreMap = new CoreMapEntry[NumPhysPages];
+	//Initialize erythang in coreMap
+	for (int i = 0; i < NumPhysPages; i++) {
+		coreMap[i].allocated = false;
+		coreMap[i].thread = NULL;
+	}
+	
+	//If we aren't doing FIFO, we don't want to use this list
+	if(pageRepChoice == 1)
+		coreFIFOList = new List();
+	else
+		coreFIFOList = NULL;
 #endif
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
@@ -221,7 +237,7 @@ Cleanup()
     delete machine;
 	delete activeThreads;
 	delete memMap;
-
+	delete coreMap;
 #endif
 
 #ifdef FILESYS_NEEDED
