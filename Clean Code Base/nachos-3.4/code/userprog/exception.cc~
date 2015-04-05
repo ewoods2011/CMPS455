@@ -346,9 +346,9 @@ ExceptionHandler(ExceptionType which)
 		//Read that register to determine which page needs to be init-ed
 		virtPageAddr = machine->ReadRegister(39);
 		//Ensure no space can page twice at the same time
-		mutex->P();
+		//mutex->P();
 		currentThread->space->Paging(virtPageAddr);	//Load in the page that caused the page fault
-		
+		//mutex->V();
 
 		//if (currentThread->getName() == "main")
 		//	ASSERT(FALSE);  //Not the way of handling an exception.

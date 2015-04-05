@@ -23,7 +23,6 @@
     NoffHeader noffH;
     unsigned int i, size, newsize, pAddr, counter;
     char FileName[64];
-    //Semaphore * mutex; 
 
 
 //----------------------------------------------------------------------
@@ -70,8 +69,6 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	pageToInit = 0;
 	executable = theExecutable;
 	myPageList = new List();
-	//A mutex so no two can page at the same time
-	//mutex = new Semaphore("mutey", 1);
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -117,25 +114,6 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 	
 	memMap->Print();	// Useful!
 
-
-
-/*
-// then, copy in the code and data segments into memory
-//Change these too since they assume virtual page = physical page
-	  //Fix this by adding startPage times page size as an offset
-    if (noffH.code.size > 0) {
-        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
-			noffH.code.virtualAddr + (startPage * PageSize), noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr + pAddr]),
-			noffH.code.size, noffH.code.inFileAddr);
-    }
-    if (noffH.initData.size > 0) {
-        DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
-			noffH.initData.virtualAddr + (startPage * PageSize), noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr + pAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
-    }
-*/
 }
 
 
@@ -143,13 +121,12 @@ void
 AddrSpace::Paging(int vpn)
 {
 	//Ensure no space can page twice at the same time
-	//mutex->P();
 	stats->numPageFaults++;
 	vpn = vpn / PageSize;
 	//Output error to user, including which process has the page fault, and what virtual page is requested
 	if(extraOutputChoice)
 		printf("***Page Fault Occurred: Process %i requests virtual page %i***\n",currentThread->getID(), vpn);
-	
+
 	//Check if there is not enough space
 	if (memMap->NumClear() <= 0)
 	{
@@ -157,9 +134,14 @@ AddrSpace::Paging(int vpn)
 		//FIFO
 		if (pageRepChoice == 1) {
 			//We want to remove the CoreMapEntry that was first added to the list 
-			CoreMapEntry *entry = (CoreMapEntry*)coreFIFOList->Remove();
+			CoreMapEntry *entry;// = (CoreMapEntry*)coreFIFOList->Remove();
 			//We need to take the least recently used page and swap it for this new page of memory
-			//For now we'll just do it with 0
+			int minTime = stats->totalTicks;
+			for(int j = 0; j < NumPhysPages; j++){
+				if(coreMap[j].counter < minTime)
+					entry = &coreMap[j];
+					minTime = coreMap[j].counter;
+			}
 			physPageToSwap = entry->physPageNum;
 			//We need to:
 			//1 - Set the valid bit of the page that is currently in that spot at main mem to false
@@ -196,8 +178,6 @@ AddrSpace::Paging(int vpn)
 			printf("Swap out physical page %d from process %d.\n", startPage, coreMap[startPage].thread->getID());
 			//Tell the user which virtual page was set to invalid
 			printf("Virtual Page %d removed.\n", coreMap[startPage].virtPageNum);
-			memMap->Print();
-			printf("\n");
 		}
 
 	}
@@ -226,8 +206,6 @@ AddrSpace::Paging(int vpn)
 		if(extraOutputChoice){
 			//Output the physical page being assigned
 			printf("Assigning physical page %d\n", startPage);
-			memMap->Print();
-			printf("\n");
 		}
 		
 		//The core map doesn't care that it is allocated
@@ -240,6 +218,7 @@ AddrSpace::Paging(int vpn)
 	coreMap[startPage].thread = currentThread;
 	coreMap[startPage].virtPageNum = vpn;
 	coreMap[startPage].physPageNum = startPage;
+	coreMap[startPage].counter = stats->totalTicks;
 	if(pageRepChoice == 1)
 		coreFIFOList->Append(&coreMap[startPage]);
 
@@ -262,7 +241,6 @@ AddrSpace::Paging(int vpn)
 	pageTable[vpn].physicalPage = startPage;
 	pageTable[vpn].virtualPage = vpn;
 
-	mutex->V();
 }
 
 //----------------------------------------------------------------------

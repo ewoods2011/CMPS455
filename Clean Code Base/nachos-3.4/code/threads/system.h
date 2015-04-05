@@ -58,6 +58,7 @@ struct CoreMapEntry {
 	Thread * thread;
 	int virtPageNum;
 	int physPageNum;
+	int counter;
 };
 
 extern CoreMapEntry * coreMap; //Core Map / Inverted page table to map which thread's using what frame 
