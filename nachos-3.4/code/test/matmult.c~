@@ -21,7 +21,7 @@ int
 main()
 {
     int i, j, k;
-Exec("../test2/blank");
+
 	Write("Running Matmult", 11, 1);	
 	
     for (i = 0; i < Dim; i++)		/* first initialize the matrices */

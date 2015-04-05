@@ -134,14 +134,15 @@ AddrSpace::Paging(int vpn)
 		//FIFO
 		if (pageRepChoice == 1) {
 			//We want to remove the CoreMapEntry that was first added to the list 
-			CoreMapEntry *entry;// = (CoreMapEntry*)coreFIFOList->Remove();
+			CoreMapEntry *entry = (CoreMapEntry*)coreFIFOList->Remove();
 			//We need to take the least recently used page and swap it for this new page of memory
-			int minTime = stats->totalTicks;
+			/*int minTime = stats->totalTicks;
 			for(int j = 0; j < NumPhysPages; j++){
+			//printf("Virtual Page Number: %d\n", coreMap[j].virtPageNum);
 				if(coreMap[j].counter < minTime)
 					entry = &coreMap[j];
 					minTime = coreMap[j].counter;
-			}
+			}*/
 			physPageToSwap = entry->physPageNum;
 			//We need to:
 			//1 - Set the valid bit of the page that is currently in that spot at main mem to false
@@ -221,7 +222,8 @@ AddrSpace::Paging(int vpn)
 	coreMap[startPage].thread = currentThread;
 	coreMap[startPage].virtPageNum = vpn;
 	coreMap[startPage].physPageNum = startPage;
-	coreMap[startPage].counter = stats->totalTicks;
+	//coreMap[startPage].counter = stats->totalTicks;
+	
 	if(pageRepChoice == 1)
 		coreFIFOList->Append(&coreMap[startPage]);
 
