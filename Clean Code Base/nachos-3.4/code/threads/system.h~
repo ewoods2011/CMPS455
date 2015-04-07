@@ -52,10 +52,11 @@ extern int threadID;	// unique process id
 //  --space: a pointer to the actual space that is using this frame            (Get rid of?)
 //  --thread: the thread that is using this frame
 //  --virtPageNum: the vpn in the space's page table that is in this frame
-//  --physPageNum: the vpn in the space's page table that is in this frame
+//  --physPageNum: the ppn in the space's page table that is in this frame
 struct CoreMapEntry {
 	bool allocated;
 	Thread * thread;
+	AddrSpace *space;
 	int virtPageNum;
 	int physPageNum;
 	int counter;

@@ -51,6 +51,9 @@ StartProcess(char *filename)
 		printf("Random.\n");
 	else
 		printf("Demand Paging (Default).\n");
+		
+    printf("Page Size: %d\n", PageSize);
+    printf("Number of Physical Pages: %d\n", NumPhysPages);
 	
     space = new AddrSpace(executable);    
     currentThread->space = space;

@@ -35,6 +35,7 @@ extern int memChoice;
 extern int pageRepChoice;
 extern bool extraOutputChoice;
 extern bool pageFlag;
+extern bool pfOccurred;
 
 extern BitMap *memMap;				//Bitmap to keep track of memory use
 
@@ -56,6 +57,7 @@ extern int threadID;	// unique process id
 struct CoreMapEntry {
 	bool allocated;
 	Thread * thread;
+	AddrSpace *space;
 	int virtPageNum;
 	int physPageNum;
 	int counter;

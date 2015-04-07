@@ -33,18 +33,18 @@
 //----------------------------------------------------------------------
 
 static void 
-SwapHeader (NoffHeader *noffH)
+SwapHeader (NoffHeader *myNoffH)
 {
-	noffH->noffMagic = WordToHost(noffH->noffMagic);
-	noffH->code.size = WordToHost(noffH->code.size);
-	noffH->code.virtualAddr = WordToHost(noffH->code.virtualAddr);
-	noffH->code.inFileAddr = WordToHost(noffH->code.inFileAddr);
-	noffH->initData.size = WordToHost(noffH->initData.size);
-	noffH->initData.virtualAddr = WordToHost(noffH->initData.virtualAddr);
-	noffH->initData.inFileAddr = WordToHost(noffH->initData.inFileAddr);
-	noffH->uninitData.size = WordToHost(noffH->uninitData.size);
-	noffH->uninitData.virtualAddr = WordToHost(noffH->uninitData.virtualAddr);
-	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
+	myNoffH->noffMagic = WordToHost(myNoffH->noffMagic);
+	myNoffH->code.size = WordToHost(myNoffH->code.size);
+	myNoffH->code.virtualAddr = WordToHost(myNoffH->code.virtualAddr);
+	myNoffH->code.inFileAddr = WordToHost(myNoffH->code.inFileAddr);
+	myNoffH->initData.size = WordToHost(myNoffH->initData.size);
+	myNoffH->initData.virtualAddr = WordToHost(myNoffH->initData.virtualAddr);
+	myNoffH->initData.inFileAddr = WordToHost(myNoffH->initData.inFileAddr);
+	myNoffH->uninitData.size = WordToHost(myNoffH->uninitData.size);
+	myNoffH->uninitData.virtualAddr = WordToHost(myNoffH->uninitData.virtualAddr);
+	myNoffH->uninitData.inFileAddr = WordToHost(myNoffH->uninitData.inFileAddr);
 }
 
 //----------------------------------------------------------------------
@@ -66,7 +66,6 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 {
 
 	space = false;
-	pageToInit = 0;
 	executable = theExecutable;
 	myPageList = new List();
 
@@ -80,11 +79,10 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
 			+ UserStackSize;	// we need to increase the size
 						// to leave room for the stack
-	newsize = sizeof(noffH) + size;
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
+    newsize = sizeof(noffH) + size;
 
-	
 	DEBUG('a', "%i contiguous blocks found for %i pages\n", counter, numPages);
 
 
@@ -110,9 +108,7 @@ AddrSpace::AddrSpace(OpenFile *theExecutable)
 						// pages to be read-only
 
     }
-    pAddr = startPage * PageSize;
-	
-	memMap->Print();	// Useful!
+
 
 }
 
@@ -134,20 +130,21 @@ AddrSpace::Paging(int vpn)
 		//FIFO
 		if (pageRepChoice == 1) {
 			//We want to remove the CoreMapEntry that was first added to the list 
-			CoreMapEntry *entry = (CoreMapEntry*)coreFIFOList->Remove();
+			int entry = 0;// = (CoreMapEntry*)coreFIFOList->Remove();
 			//We need to take the least recently used page and swap it for this new page of memory
-			/*int minTime = stats->totalTicks;
+			int minTime = coreMap[NumPhysPages].counter;
 			for(int j = 0; j < NumPhysPages; j++){
-			//printf("Virtual Page Number: %d\n", coreMap[j].virtPageNum);
-				if(coreMap[j].counter < minTime)
-					entry = &coreMap[j];
+				if(coreMap[j].counter <= minTime){
+					entry = j;
 					minTime = coreMap[j].counter;
-			}*/
-			physPageToSwap = entry->physPageNum;
+				}
+			}
+			physPageToSwap = coreMap[entry].physPageNum;
+						
 			//We need to:
 			//1 - Set the valid bit of the page that is currently in that spot at main mem to false
 			//This is confusing.
-			coreMap[physPageToSwap].thread->space->pageTable[coreMap[physPageToSwap].virtPageNum].valid = false; //Now that is "not in memory anymore"
+			coreMap[physPageToSwap].space->pageTable[coreMap[physPageToSwap].virtPageNum].valid = false; //Now that is "not in memory anymore"
 			//2 - Set the start page to whatever physPageToSwap was
 			startPage = physPageToSwap;
 			
@@ -160,7 +157,7 @@ AddrSpace::Paging(int vpn)
 			//We need to:
 			//1 - Set the valid bit of the page that is currently in that spot at main mem to false
 			//This is confusing.
-			coreMap[physPageToSwap].thread->space->pageTable[coreMap[physPageToSwap].virtPageNum].valid = false; //Now that is "not in memory anymore"
+			coreMap[physPageToSwap].space->pageTable[coreMap[physPageToSwap].virtPageNum].valid = false; //Now that is "not in memory anymore"
 			//2 - Set the start page to whatever physPageToSwap was
 			startPage = physPageToSwap;
 		}
@@ -189,12 +186,14 @@ AddrSpace::Paging(int vpn)
 	
 		//Find the first free page in memory
 		counter = 0;
-		for(i = 0; i < NumPhysPages && counter < numPages; i++)
+		for(i = 0; i < NumPhysPages; i++)
 		{
 			if(!memMap->Test(i))
 			{
-				if(counter == 0)
+				if(counter == 0){
 					startPage = i;	//startPage is a class data member
+					//break;
+					}
 									//Should it be public or private? (Currently private)
 				counter++;
 			}
@@ -219,10 +218,11 @@ AddrSpace::Paging(int vpn)
 	
 	//The core map should correspond to the bitmap in terms of what is marked
 	//It is a representation of physical memory
-	coreMap[startPage].thread = currentThread;
+	coreMap[startPage].thread = currentThread;	
+	coreMap[startPage].space = this;
 	coreMap[startPage].virtPageNum = vpn;
 	coreMap[startPage].physPageNum = startPage;
-	//coreMap[startPage].counter = stats->totalTicks;
+	coreMap[startPage].counter = stats->numPageFaults;	//Used for FIFO
 	
 	if(pageRepChoice == 1)
 		coreFIFOList->Append(&coreMap[startPage]);
@@ -234,10 +234,9 @@ AddrSpace::Paging(int vpn)
 
 	//Clear our a page of main mem
   	memset(machine->mainMemory + pAddr, 0, PageSize); 
-  		
   	//Load from the swapfile to main mem
   	swapFile->ReadAt(&(machine->mainMemory[pAddr]),
-		PageSize, noffH.code.inFileAddr +( vpn * PageSize));
+		PageSize, sizeof(noffH) + ( vpn * PageSize));
 	
 	//Set the current page in the page table to valid
 	//Update the physical page of the current page
@@ -245,7 +244,6 @@ AddrSpace::Paging(int vpn)
 	pageTable[vpn].valid = TRUE;
 	pageTable[vpn].physicalPage = startPage;
 	pageTable[vpn].virtualPage = vpn;
-
 }
 
 //----------------------------------------------------------------------
@@ -351,29 +349,31 @@ void AddrSpace::PrintMainMem() {
 }
 
 void
-AddrSpace::CreateSwapFile(int threadID)
+AddrSpace::CreateSwapFile(int myThreadID)
 {
 	//Create the Swap File to Write to
 	//Go to filesys/fstest.cc for more info on how to do
-	sprintf(FileName, "%s%d%s", "../SwapFiles/", threadID, ".swap");
+	sprintf(FileName, "%s%d%s", "../SwapFiles/", myThreadID, ".swap");
 	printf("Creating file: %s\n", FileName);
-	
 	//Create the Swap File
-	ASSERT( fileSystem->Create(FileName, 0) );
+	fileSystem->Create(FileName, 0);
 	
 	//Open the Swap File
 	swapFile = fileSystem->Open(FileName);
-	ASSERT( swapFile != NULL);
+	if(swapFile == NULL){
+		printf("Unable to create Swap File: %s\n", FileName);
+		return;
+	}
 	
 	//Buffer used to copy from the executable to the swap file
 	char* buffer = new char[newsize];
 	
 	//Reading in from the executable to the buffer
-    executable->Read(buffer, newsize);
+    	executable->Read(buffer, newsize);
   
 	
 	//Writing in to the swapFile from the buffer
-    swapFile->Write(buffer, newsize);
+    	swapFile->Write(buffer, newsize);
 	delete buffer;
 
 }

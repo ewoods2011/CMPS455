@@ -155,7 +155,7 @@ Thread::Finish ()
 #ifdef USER_PROGRAM
 	if(parent != NULL)	// Wake up the joined parent, if it exists.
 	{
-		printf("Waking up thread %i\n", currentThread->getParent()->getID());
+		//printf("Waking up thread %i\n", currentThread->getParent()->getID());
 		scheduler->WakeUpFromJoin(parent);
 	}
 

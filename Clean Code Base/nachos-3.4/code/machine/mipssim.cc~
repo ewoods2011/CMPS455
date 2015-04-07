@@ -37,7 +37,11 @@ Machine::Run()
 	       currentThread->getName(), stats->totalTicks);
     interrupt->setStatus(UserMode);
     for (;;) {
+    if(!pfOccurred)
         OneInstruction(instr);
+        else{
+        	pfOccurred = FALSE;
+        }
 	interrupt->OneTick();
 	if (singleStep && (runUntilTime <= stats->totalTicks))
 	  Debugger();
@@ -93,7 +97,7 @@ TypeToReg(RegType reg, Instruction *instr)
 void
 Machine::OneInstruction(Instruction *instr)
 {
-	printf("ONE INSTRUCTION: %d\n\n", instr->opCode);
+	//printf("ONE INSTRUCTION: %d\n\n", instr->opCode);
     int raw;
     int nextLoadReg = 0; 	
     int nextLoadValue = 0; 	// record delayed load operation, to apply
@@ -554,7 +558,7 @@ Machine::OneInstruction(Instruction *instr)
     }
     
     // Now we have successfully executed the instruction.
-    
+    if(!pfOccurred){
     // Do any delayed load operation
     DelayedLoad(nextLoadReg, nextLoadValue);
     
@@ -563,6 +567,12 @@ Machine::OneInstruction(Instruction *instr)
 						// are jumping into lala-land
     registers[PCReg] = registers[NextPCReg];
     registers[NextPCReg] = pcAfter;
+    }
+    else{
+    pfOccurred = FALSE;
+    return;
+    }
+    
 }
 
 //----------------------------------------------------------------------

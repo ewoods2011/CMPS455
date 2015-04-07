@@ -35,7 +35,7 @@ class AddrSpace {
     
     void Paging(int vpn);
     void PrintMainMem();
-    void CreateSwapFile(int threadID);
+    void CreateSwapFile(int myThreadID);
     
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
@@ -46,8 +46,6 @@ class AddrSpace {
 					// address space
 	unsigned int startPage;		//Page number that the program starts at
 								//in physical memory
-								
-	unsigned int pageToInit;
 	
 	OpenFile *executable;
 	OpenFile *swapFile;

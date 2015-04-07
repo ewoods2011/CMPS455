@@ -239,36 +239,3 @@ List::SortedRemove(int *keyPtr)
     delete element;
     return thing;
 }
-
-void *
-List::RemoveAt(int key)
-{
-
-	ListElement *current = first;
-	ListElement *prev = NULL;
-	void *thing;
-	
-	if (IsEmpty())
-		return NULL;
-
-	if (size == 1) {
-		first = NULL;
-		last = NULL;
-		return NULL;
-	}
-	int j = 0;
-
-	thing = current->item;
-	//While the next item is not the what we're looking for.
-	while (j < key) {
-		prev = current;
-		current = current->next;
-		thing = current->item;
-	}
-	prev->next = current->next;
-
-	delete current;
-	size--;
-	return thing;
-}
-

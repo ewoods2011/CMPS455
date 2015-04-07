@@ -68,6 +68,7 @@ Thread* getID(int toGet)	// Goes through the list of active threads and returns 
 	Thread * toReturn = NULL;
 	bool found = false;
 	int size = activeThreads->getSize();
+	//printf("Threads size: %d\n", size);
 	for(int i = 0; i < size; i++)
 	{
 		tempThread = (Thread*)activeThreads->Remove();	// Pop the top thread off.
@@ -121,10 +122,16 @@ ExceptionHandler(ExceptionType which)
 
 		// for debugging, in case we are jumping into lala-land
 		// Advance program counters.
-		machine->registers[PrevPCReg] = machine->registers[PCReg];
-		machine->registers[PCReg] = machine->registers[NextPCReg];
-		machine->registers[NextPCReg] = machine->registers[NextPCReg] + 4;
-
+		if(!pfOccurred){
+			machine->registers[PrevPCReg] = machine->registers[PCReg];
+			machine->registers[PCReg] = machine->registers[NextPCReg];
+			machine->registers[NextPCReg] = machine->registers[NextPCReg] + 4;
+		}
+		else{
+			pfOccurred = false;
+			break;
+		}
+	
 		
 		switch ( type )
 		{
@@ -164,13 +171,12 @@ ExceptionHandler(ExceptionType which)
 				SWrite(ch, j, arg3);
 			}
 			break;
-		case SC_Exec :	// Executes a user process inside another user process.
+				case SC_Exec :	// Executes a user process inside another user process.
 		   {
 				printf("SYSTEM CALL: Exec, called by thread %i.\n",currentThread->getID());
 
 				// Retrieve the address of the filename
 				int fileAddress = arg1; // retrieve argument stored in register r4
-
 				// Read file name into the kernel space
 				char *filename = new char[100];
 				
@@ -189,43 +195,38 @@ ExceptionHandler(ExceptionType which)
 					if(!machine->ReadMem(fileAddress,1,&j))return;
 				}
 				// Open File
-				executable = fileSystem->Open(filename);
-
+				printf("Opening File: %s\n", filename);
+				OpenFile *executable = fileSystem->Open(filename);
+				
 				if (executable == NULL) 
 				{
 					printf("Unable to open file %s\n", filename);
 					delete filename;
 					break;
 				}
-				else
-				{
-					printf("Opening file: %s\n", filename);
-				}
 				delete filename;
 
 				// Calculate needed memory space
-
 				AddrSpace *space;
 				space = new AddrSpace(executable);
+				//delete executable;
 				// Do we have enough space?
 				if(!currentThread->killNewChild)	// If so...
 				{
 					Thread* execThread = new Thread("thrad!");	// Make a new thread for the process.
 					execThread->space = space;	// Set the address space to the new space.
 					execThread->setID(threadID);	// Set the unique thread ID
-					execThread->space->CreateSwapFile(execThread->getID());
+					execThread->space->CreateSwapFile(threadID);
 					activeThreads->Append(execThread);	// Put it on the active list.
 					machine->WriteRegister(2, threadID);	// Return the thread ID as our Exec return variable.
 					threadID++;	// Increment the total number of threads.
 					execThread->Fork(processCreator, 0);	// Fork it.
-
 				}
 				else	// If not...
 				{
 					machine->WriteRegister(2, -1 * (threadID + 1));	// Return an error code
 					currentThread->killNewChild = false;	// Reset our variable
 				}
-
 				break;	// Get out.
 			}
 			case SC_Join :	// Join one process to another.
@@ -339,23 +340,15 @@ ExceptionHandler(ExceptionType which)
 			delete currentThread->space;
 		currentThread->Finish();	// Delete the thread.
 		break;
-	case PageFaultException :
-		//If there is a Page Fault, Display the error, and try to load in the page
-		
+	case PageFaultException :		
 		//The virtual address is given in the register 39.
 		//Read that register to determine which page needs to be init-ed
 		virtPageAddr = machine->ReadRegister(39);
 		//Ensure no space can page twice at the same time
 		mutex->P();
+		pfOccurred = true;
 		currentThread->space->Paging(virtPageAddr);	//Load in the page that caused the page fault
-		mutex->V();
-
-		//if (currentThread->getName() == "main")
-		//	ASSERT(FALSE);  //Not the way of handling an exception.
-		//if(currentThread->space)	// Delete the used memory from the process.
-		//	delete currentThread->space;
-		//currentThread->Finish();	// Delete the thread.
-		
+		mutex->V();		
 		break;
 		
 		default :

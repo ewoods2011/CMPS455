@@ -59,16 +59,15 @@ StartProcess(char *filename)
     currentThread->space = space;
     currentThread->space->CreateSwapFile(currentThread->getID());
 
-
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
-	//delete executable;
+
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
 					// the address space exits
 					// by doing the syscall "exit"
-			//close the file
 }
+
 
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.

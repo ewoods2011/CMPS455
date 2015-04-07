@@ -23,6 +23,7 @@ int memChoice;
 int pageRepChoice;
 bool extraOutputChoice;
 bool pageFlag;
+bool pfOccurred;
 
 BitMap * memMap;
 
@@ -101,6 +102,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 	pageFlag = false;
+	pfOccurred = false;
 	extraOutputChoice = false;
 #endif
 #ifdef FILESYS_NEEDED

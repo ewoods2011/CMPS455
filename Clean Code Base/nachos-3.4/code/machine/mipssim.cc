@@ -37,7 +37,11 @@ Machine::Run()
 	       currentThread->getName(), stats->totalTicks);
     interrupt->setStatus(UserMode);
     for (;;) {
+    if(!pfOccurred)
         OneInstruction(instr);
+        else{
+        	pfOccurred = FALSE;
+        }
 	interrupt->OneTick();
 	if (singleStep && (runUntilTime <= stats->totalTicks))
 	  Debugger();
@@ -554,7 +558,7 @@ Machine::OneInstruction(Instruction *instr)
     }
     
     // Now we have successfully executed the instruction.
-    
+
     // Do any delayed load operation
     DelayedLoad(nextLoadReg, nextLoadValue);
     
@@ -563,6 +567,8 @@ Machine::OneInstruction(Instruction *instr)
 						// are jumping into lala-land
     registers[PCReg] = registers[NextPCReg];
     registers[NextPCReg] = pcAfter;
+
+    
 }
 
 //----------------------------------------------------------------------

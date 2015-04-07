@@ -101,6 +101,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 	pageFlag = false;
+	pfOccurred = false;
 	extraOutputChoice = false;
 #endif
 #ifdef FILESYS_NEEDED
@@ -257,7 +258,6 @@ Cleanup()
     delete scheduler;
     delete interrupt;
     
-    printf("\n Total number of page faults: %d\n\n");
     Exit(0);
 }
 
