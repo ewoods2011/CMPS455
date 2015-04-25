@@ -156,7 +156,7 @@ OpenForWrite(char *name)
 {
     int fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0666);
     ASSERT(fd >= 0); 
-    return fd++;
+    return fd;
 }
 
 //----------------------------------------------------------------------
@@ -185,7 +185,7 @@ void
 Read(int fd, char *buffer, int nBytes)
 {
     int retVal = read(fd, buffer, nBytes);
-    ASSERT(retVal == nBytes);
+  //  ASSERT(retVal == nBytes);
 }
 
 //----------------------------------------------------------------------
@@ -222,7 +222,7 @@ void
 Lseek(int fd, int offset, int whence)
 {
     int retVal = lseek(fd, offset, whence);
-    ASSERT(retVal >= 0);
+    //ASSERT(retVal >= 0);
 }
 
 //----------------------------------------------------------------------

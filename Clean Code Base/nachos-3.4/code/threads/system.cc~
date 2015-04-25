@@ -23,6 +23,7 @@ int memChoice;
 int pageRepChoice;
 bool extraOutputChoice;
 bool pageFlag;
+bool pfOccurred;
 
 BitMap * memMap;
 
@@ -105,7 +106,7 @@ Initialize(int argc, char **argv)
 	extraOutputChoice = false;
 #endif
 #ifdef FILESYS_NEEDED
-    bool format = FALSE;	// format disk
+    bool format = TRUE;	// format disk
 #endif
 #ifdef NETWORK
     double rely = 1;		// network reliability

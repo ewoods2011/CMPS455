@@ -48,7 +48,8 @@ Copy(char *from, char *to)
     fseek(fp, 0, 0);
 
 // Create a Nachos file of the same length
-    DEBUG('f', "Copying file %s, size %d, to file %s\n", from, fileLength, to);
+    printf("Copying file %s, size %d, to file %s\n", from, fileLength, to);
+    printf("Creating file %s, size %i\n",to, fileLength);
     if (!fileSystem->Create(to, fileLength)) {	 // Create Nachos file
 	printf("Copy: couldn't create output file %s\n", to);
 	fclose(fp);
@@ -61,7 +62,8 @@ Copy(char *from, char *to)
 // Copy the data in TransferSize chunks
     buffer = new char[TransferSize];
     while ((amountRead = fread(buffer, sizeof(char), TransferSize, fp)) > 0)
-	openFile->Write(buffer, amountRead);	
+	openFile->Write(buffer, amountRead);
+		
     delete [] buffer;
 
 // Close the UNIX and the Nachos files

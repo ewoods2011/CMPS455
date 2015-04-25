@@ -62,7 +62,6 @@ class Semaphore {
 // In addition, by convention, only the thread that acquired the lock
 // may release it.  As with semaphores, you can't read the lock value
 // (because the value might change immediately after you read it).  
-
 class Lock {
   public:
     Lock(char* debugName);  		// initialize lock to be FREE
@@ -76,10 +75,12 @@ class Lock {
 					// holds this lock.  Useful for
 					// checking in Release, and in
 					// Condition variable ops below.
+					
 
   private:
     char* name;				// for debugging
-    // plus some other stuff you'll need to define
+    bool value;         // semaphore value, always >= 0
+    List *queue;       // threads waiting in P() for the value to be > 0
 };
 
 // The following class defines a "condition variable".  A condition

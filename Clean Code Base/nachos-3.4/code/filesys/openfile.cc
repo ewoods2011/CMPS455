@@ -141,7 +141,6 @@ OpenFile::ReadAt(char *into, int numBytes, int position)
     // copy the part we want
     bcopy(&buf[position - (firstSector * SectorSize)], into, numBytes);
     delete [] buf;
-    printf("******Finished ReadAt \n");
     return numBytes;
 }
 

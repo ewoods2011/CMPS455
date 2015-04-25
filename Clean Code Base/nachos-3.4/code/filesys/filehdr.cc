@@ -41,14 +41,62 @@
 bool
 FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
-    numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
-	return FALSE;		// not enough space
+    	numBytes = fileSize;
+    	numSectors  = divRoundUp(fileSize, SectorSize);
+    	int direct;
+    	int indirect;
+    	int doubleIndirect;
+    	
+    	printf("File Size = %i\n", numBytes);
+    	
+    	/*
+    	**	For Files <= MaxFileSize1 (15872), use 62 direct pointers, 0 indirect pointers, and 0 double indirect pointers
+    	**	For Files > MaxFileSize1 (15872) and <= MaxFileSize2 (32000), use 61 direct pointers, 1 indirect pointer, and 0 double indirect pointers
+    	**	For Files > MaxFileSize2, use 60 direct pointers, 1 indirect pointer, and 1 double indirect pointer
+    	*/
+    	
+    	if(fileSize <= MaxFileSize1)
+    	{
+    		direct = numSectors;
+    		indirect = 0;
+    		doubleIndirect = 0;
+    		printf("Requires %i Sector(s) (including %i pointer blocks).\n\n", numSectors, indirect + doubleIndirect);
+    	}
+    	else if (fileSize > MaxFileSize1 && fileSize <= MaxFileSize2)
+    	{
+    		direct = NumDirect - 1;
+    		indirect = 1;
+    		doubleIndirect = 0;
+    		printf("Requires %i Sector(s) (including %i pointer blocks).\n\n", numSectors, indirect + doubleIndirect);
+    	}
+    	else
+    	{
+    	    	direct = NumDirect - 2;
+    		indirect = 1;
+    		doubleIndirect = 1;
+    		printf("Requires %i Sector(s) (including %i pointer blocks).\n\n", numSectors, indirect + doubleIndirect);
+    	}
+    
+    	if (freeMap->NumClear() < numSectors){
+    		printf("NOT ENOUGH SPACE FOR FILE\n");
+		return FALSE;		// not enough space
+	}
 
-    for (int i = 0; i < numSectors; i++)
-	dataSectors[i] = freeMap->Find();
-    return TRUE;
+	printf("Consumed Sectors (Before allocation) - ");
+	freeMap->Print();
+	printf("\n");
+    	for (int i = 0; i < direct; i++)
+		dataSectors[i] = freeMap->Find();
+	
+	printf("Used %i direct pointers\n", direct);
+	printf("Used %i indirect pointers\n", indirect);
+	printf("Used %i double indirect pointers\n\n", doubleIndirect);
+	
+	printf("Consumed Sectors (After allocation) - ");
+	freeMap->Print();
+	printf("\n");
+	
+    	return TRUE;
 }
 
 //----------------------------------------------------------------------
@@ -61,10 +109,25 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
+	//Show the bitmap before deallocation of data blocks for the file
+	printf("*****FileHeader Deconstructor is invoked!!\n");
+	
+	printf("Consumed Sectors (Before deallocation) - ");
+	freeMap->Print();
+	printf("\n");
+	
     for (int i = 0; i < numSectors; i++) {
 	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
 	freeMap->Clear((int) dataSectors[i]);
+	dataSectors[i] = 0;
     }
+    
+    	//Show the bitmap after deallocation of the data blocks for the file
+    	printf("Consumed Sectors (After deallocation) - ");
+	freeMap->Print();
+	printf("\n");
+	
+	printf("All Data Sectors have been released.\n\n");
 }
 
 //----------------------------------------------------------------------
