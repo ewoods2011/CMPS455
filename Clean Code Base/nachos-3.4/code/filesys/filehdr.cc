@@ -61,6 +61,13 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
     		indirect = 0;
     		doubleIndirect = 0;
     		printf("Requires %i Sector(s) (including %i pointer blocks).\n\n", numSectors, indirect + doubleIndirect);
+    		
+			printf("Consumed Sectors (Before allocation) - ");
+			freeMap->Print();
+			printf("\n");
+	
+   			for (int i = 0; i < direct; i++)
+				dataSectors[i] = freeMap->Find();
     	}
     	else if (fileSize > MaxFileSize1 && fileSize <= MaxFileSize2)
     	{
@@ -68,13 +75,95 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
     		indirect = 1;
     		doubleIndirect = 0;
     		printf("Requires %i Sector(s) (including %i pointer blocks).\n\n", numSectors, indirect + doubleIndirect);
+			
+			printf("Consumed Sectors (Before allocation) - ");
+			freeMap->Print();
+			printf("\n");
+	
+	
+			printf("direct things: \n");
+   			for (int i = 0; i < direct; i++)
+   			{
+				dataSectors[i] = freeMap->Find();
+				printf(" %d", dataSectors[i]);
+			}	
+			//single indirect ptr
+			
+			printf("indirect secotr: \n");
+			dataSectors[direct] = freeMap->Find();
+			printf(" %d", dataSectors[direct]);
+			int singleIndirects = numSectors - direct;
+			
+			//pointers in the sector
+			int directPtrs_of_sector[SectorSize / sizeof(int)] = {0};
+			
+			printf("indirect stuff in sectoroe: \n");
+			for(int i = 0; i < singleIndirects; i++)
+			{
+				directPtrs_of_sector[i] = freeMap->Find();
+				printf(" %d", directPtrs_of_sector[i]);
+			}
+			
+			synchDisk->WriteSector(dataSectors[direct], (char*)directPtrs_of_sector);
+			
     	}
     	else
     	{
-    	    	direct = NumDirect - 2;
+    	    direct = NumDirect - 2;
     		indirect = 1;
     		doubleIndirect = 1;
     		printf("Requires %i Sector(s) (including %i pointer blocks).\n\n", numSectors, indirect + doubleIndirect);
+			
+			printf("Consumed Sectors (Before allocation) - ");
+			freeMap->Print();
+			printf("\n");
+	
+   			for (int i = 0; i < direct; i++)
+				dataSectors[i] = freeMap->Find();
+				
+				
+			
+				
+			for (int i = 0; i < direct; i++)
+   			{
+				dataSectors[i] = freeMap->Find();
+				printf(" %d", dataSectors[i]);
+			}	
+			//single indirect ptr
+			
+			dataSectors[direct] = freeMap->Find();
+			
+			//pointers in the sector
+			int directPtrs_of_sector[SectorSize / sizeof(int)] = {0};
+			
+			printf("indirect stuff in sector: \n");
+			for(int i = 0; i < SectorSize / sizeof(int); i++)
+			{
+				directPtrs_of_sector[i] = freeMap->Find();
+				printf(" %d", directPtrs_of_sector[i]);
+			}
+			
+			synchDisk->WriteSector(dataSectors[direct], (char*)directPtrs_of_sector);
+			
+			
+			
+			//double indirect ptr
+			
+			int ptrsPerSector = SectorSize / sizeof(int);
+    		int directOffset = (NumDirect - 2) * SectorSize;
+    	
+    		int indirectOffset = (ptrsPerSector * SectorSize);
+    		
+    		int bytesPerSingleIndirectPtr = ptrsPerSector * SectorSize;
+    		
+			int singleIndirectPtrs = (numBytes - directOffset - indirectOffset) / bytesPerSingleIndirectPtr;
+			
+			int 
+			
+			int directPtrsOnLastSingleIndirectPtr = 
+			
+			for(int j = 0; j < 
+			
     	}
     
     	if (freeMap->NumClear() < numSectors){
@@ -82,12 +171,6 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 		return FALSE;		// not enough space
 	}
 
-	printf("Consumed Sectors (Before allocation) - ");
-	freeMap->Print();
-	printf("\n");
-    	for (int i = 0; i < direct; i++)
-		dataSectors[i] = freeMap->Find();
-	
 	printf("Used %i direct pointers\n", direct);
 	printf("Used %i indirect pointers\n", indirect);
 	printf("Used %i double indirect pointers\n\n", doubleIndirect);
@@ -97,6 +180,7 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 	printf("\n");
 	
     	return TRUE;
+    	
 }
 
 //----------------------------------------------------------------------
@@ -169,7 +253,62 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+	if(numBytes <= MaxFileSize1)
+	{
+		return(dataSectors[offset / SectorSize]);
+    }
+    else if (numBytes > MaxFileSize1 && numBytes <= MaxFileSize2) 
+    {
+    	int directOffset = (NumDirect - 1) * SectorSize;
+    
+    	if(offset < directOffset) 
+    	{
+    		return(dataSectors[offset / SectorSize]);
+    	}
+  		else 
+  		{
+  			int ptrsPerSector = SectorSize / sizeof(int);
+  			int readSector[ptrsPerSector];
+  			
+  			synchDisk->ReadSector(dataSectors[NumDirect - 1], (char*)readSector);
+  			
+  			return readSector[ (offset - directOffset) / SectorSize ];
+  			
+  		}
+  		
+    }
+    else 
+    {
+        int ptrsPerSector = SectorSize / sizeof(int);
+    	int directOffset = (NumDirect - 2) * SectorSize;
+    	
+    	int indirectOffset = (ptrsPerSector * SectorSize);
+    	
+    	if(offset < directOffset) 
+    	{
+    		return(dataSectors[offset / SectorSize]);
+    	}
+    	else if (offset > directOffset && offset < directOffset + indirectOffset)
+  		{
+  			int readSector[ptrsPerSector];
+  			
+  			synchDisk->ReadSector(dataSectors[NumDirect - 2], (char*)readSector);
+  			
+  			return readSector[ (offset - directOffset) / SectorSize ];
+  			
+  		}
+  		else
+  		{
+  			int readSector[ptrsPerSector];
+  			
+  			synchDisk->ReadSector(dataSectors[NumDirect - 1], (char*)readSector);
+  			
+  			int doubleoffsetloc = (offset - directOffset - indirectOffset) / (SectorSize * ptrsPerSector);
+  			
+  			readSector[]
+  		}
+    }
+    	
 }
 
 //----------------------------------------------------------------------
