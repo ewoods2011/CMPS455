@@ -80,28 +80,21 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 			freeMap->Print();
 			printf("\n");
 	
-	
-			printf("direct things: \n");
    			for (int i = 0; i < direct; i++)
    			{
 				dataSectors[i] = freeMap->Find();
-				printf(" %d", dataSectors[i]);
 			}	
-			//single indirect ptr
 			
-			printf("indirect secotr: \n");
+			//single indirect ptr
 			dataSectors[direct] = freeMap->Find();
-			printf(" %d", dataSectors[direct]);
 			int singleIndirects = numSectors - direct;
 			
 			//pointers in the sector
 			int directPtrs_of_sector[SectorSize / sizeof(int)] = {0};
 			
-			printf("indirect stuff in sectoroe: \n");
 			for(int i = 0; i < singleIndirects; i++)
 			{
 				directPtrs_of_sector[i] = freeMap->Find();
-				printf(" %d", directPtrs_of_sector[i]);
 			}
 			
 			synchDisk->WriteSector(dataSectors[direct], (char*)directPtrs_of_sector);
@@ -118,16 +111,9 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 			freeMap->Print();
 			printf("\n");
 	
-   			for (int i = 0; i < direct; i++)
-				dataSectors[i] = freeMap->Find();
-				
-				
-			
-				
 			for (int i = 0; i < direct; i++)
    			{
 				dataSectors[i] = freeMap->Find();
-				printf(" %d", dataSectors[i]);
 			}	
 			//single indirect ptr
 			
@@ -136,11 +122,9 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 			//pointers in the sector
 			int directPtrs_of_sector[SectorSize / sizeof(int)] = {0};
 			
-			printf("indirect stuff in sector: \n");
 			for(int i = 0; i < SectorSize / sizeof(int); i++)
 			{
 				directPtrs_of_sector[i] = freeMap->Find();
-				printf(" %d", directPtrs_of_sector[i]);
 			}
 			
 			synchDisk->WriteSector(dataSectors[direct], (char*)directPtrs_of_sector);
@@ -158,14 +142,37 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
     		
 			int singleIndirectPtrs = (numBytes - directOffset - indirectOffset) / bytesPerSingleIndirectPtr;
 			
-			for(int j = 0; j < 
+			
+			
+			
+			
+			
+			
+			
+			dataSectors[direct+1] = freeMap->Find();
+			
+			int singlePtrs_of_sector[SectorSize / sizeof(int)] = {0};
+			for(int i = 0; i < SectorSize / sizeof(int); i++)
+			{
+				singlePtrs_of_sector[i] = freeMap->Find();			
+			}
+			synchDisk->WriteSector(dataSectors[direct+1], (char*)singlePtrs_of_sector);
+			
+			for(int i = 0; i < SectorSize / sizeof(int); i++)
+			{
+				int doublePtrs_of_sector[SectorSize / sizeof(int)] = {0};
+				for(int j = 0; j < SectorSize / sizeof(int); j++)
+				{
+					doublePtrs_of_sector[j] = freeMap->Find();
+				}
+				synchDisk->WriteSector(singlePtrs_of_sector[i], (char*)doublePtrs_of_sector);
+				
+			}
+			
+			
 			
     	}
     
-    	if (freeMap->NumClear() < numSectors){
-    		printf("NOT ENOUGH SPACE FOR FILE\n");
-		return FALSE;		// not enough space
-	}
 
 	printf("Used %i direct pointers\n", direct);
 	printf("Used %i indirect pointers\n", indirect);
@@ -195,11 +202,35 @@ FileHeader::Deallocate(BitMap *freeMap)
 	printf("Consumed Sectors (Before deallocation) - ");
 	freeMap->Print();
 	printf("\n");
-	
-    for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	freeMap->Clear((int) dataSectors[i]);
-	dataSectors[i] = 0;
+	if(numBytes <= MaxFileSize1)
+    {
+    	for (int i = 0; i < numSectors; i++) 
+    	{
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+			freeMap->Clear((int) dataSectors[i]);
+			dataSectors[i] = 0;
+    	}
+    }
+    else if (numBytes > MaxFileSize1 && numBytes <= MaxFileSize2)
+    {
+    
+        int readSector[(SectorSize / sizeof(int))];
+    	synchDisk->ReadSector(dataSectors[NumDirect - 1], (char*)readSector);
+    	for (int i = 0; i <= numSectors-NumDirect; i++) 
+    	{
+			ASSERT(freeMap->Test((int) readSector[i]));  // ought to be marked!
+			freeMap->Clear((int) readSector[i]);
+			readSector[i] = 0;
+    	}
+    	for (int i = 0; i < NumDirect; i++) 
+    	{
+			ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+			freeMap->Clear((int) dataSectors[i]);
+			dataSectors[i] = 0;
+    	}
+
+    	
+    	
     }
     
     	//Show the bitmap after deallocation of the data blocks for the file
@@ -301,7 +332,12 @@ FileHeader::ByteToSector(int offset)
   			
   			int doubleoffsetloc = (offset - directOffset - indirectOffset) / (SectorSize * ptrsPerSector);
   			
-  			readSector[]
+  			int readSector2[ptrsPerSector];
+  			synchDisk->ReadSector(readSector[doubleoffsetloc], (char*)readSector2);
+  			
+  			return readSector2[ (offset - directOffset - indirectOffset - (indirectOffset*doubleoffsetloc)) / SectorSize ];
+  			
+  			
   		}
     }
     	
