@@ -20,6 +20,7 @@
 #define NumDirect 	((SectorSize - 2 * sizeof(int)) / sizeof(int))					//62
 #define MaxFileSize1 	(NumDirect * SectorSize)							//15872
 #define MaxFileSize2	(((NumDirect-1) + ((SectorSize - sizeof(int)) / sizeof(int))) * SectorSize)	//32000
+#define PtrsPerSector (SectorSize / sizeof(int))
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
 // the "i-node"), describing where on disk to find all of the data in the file.

@@ -293,6 +293,7 @@ FileSystem::Remove(char *name)
     directory->FetchFrom(directoryFile);
     sector = directory->Find(name);
     if (sector == -1) {
+    	printf("File not found in the Directory\n");
        delete directory;
        return FALSE;			 // file not found 
     }
